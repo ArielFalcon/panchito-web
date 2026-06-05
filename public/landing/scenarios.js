@@ -47,13 +47,13 @@
       steps: [
         { at: 300, run: (c) => { c.rail.set('classify', 'active'); c.graph.pulse('ds'); c.graph.litNode('ds'); } },
         { at: 1100, run: (c) => c.graph.litEdge('ds', 'dc') },
-        { at: 1550, run: (c) => c.graph.litNode('dc') },
+        { at: 1550, run: (c) => { c.graph.litNode('dc'); c.graph.pulse('dc'); } },
         { at: 2100, run: (c) => c.graph.litEdge('dc', 'cc') },
-        { at: 2550, run: (c) => c.graph.litNode('cc') },
+        { at: 2550, run: (c) => { c.graph.litNode('cc'); c.graph.pulse('cc'); } },
         { at: 3100, run: (c) => c.graph.litEdge('cc', 'ui') },
-        { at: 3550, run: (c) => c.graph.litNode('ui') },
+        { at: 3550, run: (c) => { c.graph.litNode('ui'); c.graph.pulse('ui'); } },
         { at: 4050, run: (c) => { c.graph.litEdge('ui', 'cart'); c.graph.litEdge('ds', 'pg'); } },
-        { at: 4450, run: (c) => { c.graph.litNode('cart'); c.graph.litNode('pg'); c.rail.set('classify', 'done'); c.rail.set('generate', 'active'); } },
+        { at: 4450, run: (c) => { c.graph.litNode('cart'); c.graph.litNode('pg'); c.graph.pulse('cart'); c.graph.pulse('pg'); c.rail.set('classify', 'done'); c.rail.set('generate', 'active'); } },
         { at: 5000, run: (c) => { c.plan.setTitle(t('d1.plantitle')); c.plan.add(t('d1.plan1')); } },
         { at: 5550, run: (c) => c.plan.add(t('d1.plan2')) },
         { at: 6100, run: (c) => { c.plan.add(t('d1.plan3')); c.rail.set('generate', 'done'); c.rail.set('review', 'active'); } },
@@ -74,9 +74,11 @@
     "});",
   ];
   function demo2() {
+    function growStage(stage) { stage.style.height = stage.scrollHeight + 'px'; }
     return {
       mount(root) {
         const wrap = el('div', 'stage-surface');
+        wrap.style.overflow = 'hidden';
         const rail = Rail();
         const diff = CodeDiff(SPEC);
         const verdict = Verdict();
@@ -85,29 +87,33 @@
         const gh = GHCard();
         [rail.el, diff.el, verdict.el, term.el, human.el, gh.el].forEach((e) => wrap.appendChild(e));
         root.appendChild(wrap);
-        return { rail, diff, verdict, term, human, gh, reset() { rail.reset(); diff.reset(); verdict.reset(); term.reset(); human.reset(); gh.reset(); } };
+        requestAnimationFrame(() => { wrap.style.height = wrap.scrollHeight + 'px'; });
+        return { rail, diff, verdict, term, human, gh, wrap, reset() { rail.reset(); diff.reset(); verdict.reset(); term.reset(); human.reset(); gh.reset(); } };
       },
       duration: 7400,
       steps: [
         { at: 250, run: (c) => { c.rail.set('gate', 'done'); c.rail.set('classify', 'active'); } },
-        { at: 750, run: (c) => { c.rail.set('classify', 'done'); c.rail.set('generate', 'active'); c.diff.typeAll(); } },
-        { at: 2050, run: (c) => { c.rail.set('generate', 'done'); c.rail.set('review', 'active'); c.verdict.show(false, t('d2.rej')); } },
-        { at: 2950, run: (c) => c.verdict.show(true, t('d2.appr')) },
-        { at: 3550, run: (c) => { c.rail.set('review', 'done'); c.rail.set('coverage', 'active'); c.diff.glow([4, 5, 6, 7, 8]); c.term.line('›', t('d2.cov'), 'is-pass'); } },
-        { at: 4200, run: (c) => { c.rail.set('coverage', 'done'); c.rail.set('execute', 'active'); c.term.line('$', 'npx playwright test --grep coupon'); } },
-        { at: 4700, run: (c) => c.term.line('›', 'running against dev.shop.app', 'is-mut') },
+        { at: 750, run: (c) => { c.rail.set('classify', 'done'); c.rail.set('generate', 'active'); c.diff.typeAll(() => { growStage(c.wrap); }); } },
+        { at: 2050, run: (c) => { c.rail.set('generate', 'done'); c.rail.set('review', 'active'); c.verdict.show(false, t('d2.rej')); growStage(c.wrap); } },
+        { at: 2950, run: (c) => { c.verdict.show(true, t('d2.appr')); growStage(c.wrap); } },
+        { at: 3550, run: (c) => { c.rail.set('review', 'done'); c.rail.set('coverage', 'active'); c.diff.glow([4, 5, 6, 7, 8]); c.term.line('›', t('d2.cov'), 'is-pass'); growStage(c.wrap); } },
+        { at: 4200, run: (c) => { c.rail.set('coverage', 'done'); c.rail.set('execute', 'active'); c.term.line('$', 'npx playwright test --grep coupon'); growStage(c.wrap); } },
+        { at: 4700, run: (c) => { c.term.line('›', 'running against dev.shop.app', 'is-mut'); growStage(c.wrap); } },
         { at: 5400, run: (c) => {
             if (window.LandingState.d2ending === 'pass') c.term.line('✓', '1 passed · 12.4s', 'is-pass');
             else c.term.line('✗', '1 failed · total was "$50.00", expected "$45.00"', 'is-fail');
+            growStage(c.wrap);
           } },
         { at: 6100, run: (c) => {
             if (window.LandingState.d2ending === 'pass') { c.rail.set('execute', 'done'); c.rail.set('decide', 'active'); }
             else { c.rail.set('execute', 'fail'); c.rail.set('decide', 'active'); c.human.show(t('d2.err')); }
+            growStage(c.wrap);
           } },
         { at: 6800, run: (c) => {
             c.rail.set('decide', 'done');
             if (window.LandingState.d2ending === 'pass') c.gh.show('pr', t('d2.prtitle'), { branch: 'e2e-coupon', base: 'main' });
             else c.gh.show('issue', t('d2.issuetitle'), { sub: 'sanitized logs attached' });
+            growStage(c.wrap);
           } },
       ],
     };

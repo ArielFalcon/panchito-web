@@ -319,12 +319,13 @@
     model.nodes.forEach((n) => {
       const g = elem('g', { class: 'gnode' });
       g.appendChild(elem('circle', { cx: n.x, cy: n.y, r: n.r || 9, fill: '#3a382f' }));
+      g.appendChild(elem('circle', { class: 'gnode-halo', cx: n.x, cy: n.y, r: n.r || 9, 'stroke-width': '2' }));
       const tx = elem('text', { class: 'gnode__label', x: n.x, y: n.y + (n.r || 9) + 12, 'text-anchor': 'middle' }); tx.textContent = n.label; g.appendChild(tx);
       svg.appendChild(g); nodeEls[n.id] = g;
     });
     return {
       el: svg,
-      pulse(id) { const g = nodeEls[id]; if (!g) return; g.classList.add('changed'); const c = g.querySelector('circle'); c.animate ? c.animate([{ r: c.getAttribute('r') }, { r: (+c.getAttribute('r') + 6) }, { r: c.getAttribute('r') }], { duration: 700 }) : 0; },
+      pulse(id) { const g = nodeEls[id]; if (!g) return; g.classList.add('changed'); const c = g.querySelector('circle:not(.gnode-halo)'); if (c && c.animate) c.animate([{ r: c.getAttribute('r') }, { r: (+c.getAttribute('r') + 7) }, { r: c.getAttribute('r') }], { duration: 800, easing: 'ease-out' }); setTimeout(() => g.classList.remove('changed'), 800); },
       litNode(id) { nodeEls[id] && nodeEls[id].classList.add('lit'); },
       litEdge(from, to) { const e = edgeEls[from + '>' + to]; e && e.classList.add('lit'); const l = labelEls[from + '>' + to]; l && l.classList.add('show'); },
       reset() { Object.values(nodeEls).forEach((g) => g.classList.remove('lit', 'changed')); Object.values(edgeEls).forEach((e) => e.classList.remove('lit')); Object.values(labelEls).forEach((l) => l.classList.remove('show')); },
