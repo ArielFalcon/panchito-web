@@ -1,0 +1,66 @@
+/* ───────────────────────────────────────────────────────────────────────
+   Panchito — Typography
+   Archivo carries display + UI. JetBrains Mono is the brand voice for labels,
+   verdict tags, code, eyebrows, and any machine-emitted metadata. Mono is used
+   deliberately and often — Panchito speaks in the developer's own typeface.
+   ─────────────────────────────────────────────────────────────────────── */
+:root {
+  --font-display: 'Archivo', 'Helvetica Neue', Arial, sans-serif;
+  --font-sans:    'Archivo', 'Helvetica Neue', Arial, sans-serif;
+  --font-mono:    'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+  /* Type scale — 1.250 major-third above body, tighter steps below. */
+  --text-2xs:  11px;
+  --text-xs:   12px;
+  --text-sm:   13px;
+  --text-base: 15px;   /* default body */
+  --text-md:   17px;
+  --text-lg:   20px;
+  --text-xl:   25px;
+  --text-2xl:  31px;
+  --text-3xl:  39px;
+  --text-4xl:  49px;
+  --text-5xl:  62px;
+  --text-6xl:  78px;
+
+  /* Weights */
+  --weight-regular:  400;
+  --weight-medium:   500;
+  --weight-semibold: 600;
+  --weight-bold:     700;
+  --weight-black:    800;
+
+  /* Line heights */
+  --leading-none:    1;
+  --leading-tight:   1.12;
+  --leading-snug:    1.28;
+  --leading-normal:  1.5;
+  --leading-relaxed: 1.65;
+
+  /* Tracking — display tightens, mono/labels open up */
+  --tracking-tighter: -0.03em;
+  --tracking-tight:   -0.015em;
+  --tracking-normal:  0;
+  --tracking-wide:    0.04em;
+  --tracking-label:   0.08em;   /* mono eyebrows / uppercase labels */
+
+  /* ── Semantic roles ─────────────────────────────────────────────────── */
+  --display-font:    var(--font-display);
+  --display-weight:  var(--weight-black);
+  --display-tracking: var(--tracking-tighter);
+  --display-leading: var(--leading-tight);
+
+  --heading-font:    var(--font-display);
+  --heading-weight:  var(--weight-bold);
+  --heading-tracking: var(--tracking-tight);
+
+  --body-font:       var(--font-sans);
+  --body-weight:     var(--weight-regular);
+  --body-leading:    var(--leading-normal);
+
+  --label-font:      var(--font-mono);
+  --label-weight:    var(--weight-medium);
+  --label-tracking:  var(--tracking-label);
+
+  --code-font:       var(--font-mono);
+}

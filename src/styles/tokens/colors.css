@@ -1,0 +1,73 @@
+/* ───────────────────────────────────────────────────────────────────────
+   Panchito — Color
+   Warm ink on bone paper. The verdict palette is functional, not decorative:
+   every Panchito run resolves to one verdict, and those colors are reserved
+   for status. The ember signal is the single brand accent.
+   ─────────────────────────────────────────────────────────────────────── */
+:root {
+  /* ── Paper & ink (base ramp) ───────────────────────────────────────── */
+  --bone-50:  #faf8f2;   /* lightest paper, raised surfaces */
+  --bone-100: #f4f1e9;   /* page paper — the default canvas */
+  --bone-200: #eae5d8;   /* sunken panel / inset */
+  --bone-300: #ddd7c6;   /* hairline on paper, dividers */
+  --bone-400: #c4bda9;   /* disabled ink, faint marks */
+
+  --ink-900: #1b1a16;    /* primary ink — warm near-black */
+  --ink-700: #3c3a32;    /* strong secondary ink */
+  --ink-500: #6b685b;    /* muted ink, captions, metadata */
+  --ink-400: #8a8675;    /* placeholder, de-emphasized */
+
+  /* ── Ember — the one brand signal ──────────────────────────────────── */
+  --ember-600: #a83f20;  /* pressed */
+  --ember-500: #c24e2c;  /* brand signal — links, focus, marks */
+  --ember-400: #d96a45;  /* hover / lighter */
+  --ember-100: #f3e2d8;  /* ember wash, selection, tag fill */
+
+  /* ── Verdict semantics (run outcomes) ──────────────────────────────── */
+  --pass-600:  #2f6b4a;
+  --pass-500:  #3b7a57;   /* pass / green build / approved */
+  --pass-100:  #dde9e0;
+
+  --fail-600:  #a8332a;
+  --fail-500:  #c0392b;   /* fail / rejected */
+  --fail-100:  #f1dcd9;
+
+  --flaky-600: #a36f12;
+  --flaky-500: #c2891b;   /* flaky / quarantined */
+  --flaky-100: #f0e6cf;
+
+  --infra-600: #3c5666;
+  --infra-500: #4a6877;   /* infra-error / DEV down */
+  --infra-100: #dde6ea;
+
+  --skip-500:  #6b685b;   /* skipped / no-op (shares muted ink) */
+  --skip-100:  #e7e3d7;
+
+  /* ───────────────────────────────────────────────────────────────────
+     Semantic aliases — reference these in components, not the ramp above.
+     ─────────────────────────────────────────────────────────────────── */
+  --surface-page:    var(--bone-100);
+  --surface-raised:  var(--bone-50);
+  --surface-sunken:  var(--bone-200);
+  --surface-ink:     var(--ink-900);   /* inverted panels, terminal */
+
+  --text-strong:     var(--ink-900);
+  --text-body:       var(--ink-700);
+  --text-muted:      var(--ink-500);
+  --text-faint:      var(--ink-400);
+  --text-on-ink:     var(--bone-100);
+  --text-on-ember:   var(--bone-50);
+  --text-link:       var(--ember-500);
+
+  --border-hairline: var(--bone-300);
+  --border-strong:   var(--ink-900);
+  --border-ember:    var(--ember-500);
+
+  --accent:          var(--ember-500);
+  --accent-hover:    var(--ember-400);
+  --accent-press:    var(--ember-600);
+  --accent-wash:     var(--ember-100);
+
+  --focus-ring:      var(--ember-500);
+  --selection-bg:    var(--ember-100);
+}

@@ -1,0 +1,10 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   Panchito Design System — the REAL tokens (provided by the designer).
+   This is the design-system entry manifest; it ships every token + base rule
+   the kit consumes. landing.css imports this first, then layers the kit styles.
+   ═══════════════════════════════════════════════════════════════════════ */
+@import './tokens/fonts.css';
+@import './tokens/colors.css';
+@import './tokens/typography.css';
+@import './tokens/spacing.css';
+@import './tokens/base.css';

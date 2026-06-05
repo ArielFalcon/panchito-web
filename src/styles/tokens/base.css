@@ -1,0 +1,82 @@
+/* ───────────────────────────────────────────────────────────────────────
+   Panchito — Base layer
+   Sensible element defaults + a handful of brand utilities every surface
+   reuses (the mono eyebrow, the ruled background, the verdict tag base).
+   Kept small on purpose; components carry their own structure.
+   ─────────────────────────────────────────────────────────────────────── */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  background-color: var(--surface-page);
+  color: var(--text-body);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  font-weight: var(--weight-regular);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection { background: var(--selection-bg); color: var(--ink-900); }
+
+h1, h2, h3, h4, h5, h6 {
+  margin: 0;
+  font-family: var(--heading-font);
+  font-weight: var(--heading-weight);
+  letter-spacing: var(--heading-tracking);
+  line-height: var(--leading-tight);
+  color: var(--text-strong);
+  text-wrap: balance;
+}
+
+p { margin: 0; text-wrap: pretty; }
+
+a {
+  color: var(--text-link);
+  text-decoration: none;
+  text-underline-offset: 0.18em;
+  text-decoration-thickness: 1px;
+  transition: color var(--dur-fast) var(--ease-out);
+}
+a:hover { color: var(--accent-hover); text-decoration: underline; }
+
+code, pre, kbd, samp { font-family: var(--code-font); font-size: 0.92em; }
+
+hr { border: 0; border-top: var(--border-rule); margin: var(--space-6) 0; }
+
+:focus-visible {
+  outline: var(--border-width-2) solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* ── Brand utilities ──────────────────────────────────────────────────── */
+
+/* The mono eyebrow — uppercase, tracked, machine-voice. Used above titles,
+   on section labels, and on metadata throughout the system. */
+.pa-eyebrow {
+  font-family: var(--font-mono);
+  font-weight: var(--weight-medium);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* Engineering-paper ruled background. Apply to large canvases sparingly. */
+.pa-grid-bg {
+  background-color: var(--surface-page);
+  background-image:
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size: var(--grid-size) var(--grid-size);
+}
+
+/* Dotted variant for inset panels / terminals. */
+.pa-dot-bg {
+  background-image: radial-gradient(var(--grid-line) 1px, transparent 1px);
+  background-size: var(--grid-size) var(--grid-size);
+}
