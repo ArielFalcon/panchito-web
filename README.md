@@ -35,8 +35,9 @@ public/
     app.js         boot: wires nav, players, engine, waitlist, language
 src/
   styles/
-    ds-tokens.css  RECONSTRUCTED design system (see note below)
-    landing.css    the designer kit's styles, verbatim (imports ds-tokens)
+    ds-tokens.css  design-system entry (imports tokens/*)
+    tokens/        fonts, colors, typography, spacing, base — real DS tokens
+    landing.css    the designer kit's styles, verbatim (imports ds-tokens.css)
   pages/index.astro  the kit's markup + <head>; loads the scripts (is:inline)
 ```
 
@@ -48,12 +49,10 @@ integration rules: **styles always come from the kit**; functionality is the kit
 highlighter was reordered to stash string literals first, so the keyword pass no
 longer breaks the injected class attributes.
 
-The kit referenced a design-system token file (`styles.css`) and logo assets that
-were **not** included in the export. `src/styles/ds-tokens.css` rebuilds those
-tokens (critical hues were pinned by the kit itself; the rest fill each scale
-coherently — warm "engineering paper × ember"), and the marks were recreated from
-the kit's own thumbnail. If you have the real `styles.css` + assets, drop them in
-and delete the reconstruction — it's a clean, swappable token layer.
+The design-system tokens are the real ones from the designer (`tokens/`), consumed
+by `ds-tokens.css`. The logo marks were recreated from the kit's own thumbnail. If
+updated tokens or assets arrive, drop them into `tokens/` — it's a clean, swappable
+token layer.
 
 ## Notes
 

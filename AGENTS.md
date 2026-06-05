@@ -43,7 +43,7 @@ public/
 
 ### Don't touch these
 - **`.astro/`** — auto-generated types. Never edit.
-- **`src/styles/ds-tokens.css` + `tokens/`** — reconstructed design system. The original kit's token file wasn't included in the export. If the real `styles.css` + assets arrive, drop them in and delete the reconstruction. Until then, this is the source of truth.
+- **`src/styles/ds-tokens.css` + `tokens/`** — the real design system tokens. If updated tokens arrive from the designer, drop them into `tokens/` and they'll be picked up by `ds-tokens.css`.
 - **`public/assets/` SVGs** — also reconstructed from the kit thumbnail.
 
 ### Don't modernize the landing scripts
