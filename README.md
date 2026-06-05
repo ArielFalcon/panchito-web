@@ -4,6 +4,8 @@ Landing page for **panchito** — an autonomous E2E QA agent. The designer kit
 (vanilla HTML/CSS/JS) hosted by **Astro** as a static site. Zero backend, deploys
 to **Vercel**.
 
+→ https://github.com/ArielFalcon/panchito-web
+
 The page is a *scenario engine wrapped in a scroll narrative*: four auto-playing
 demos (blast-radius graph, generate→review→coverage→run→record, multi-channel
 chat, self-fix loop) carry the story, plus an interactive **Scenario Engine** and

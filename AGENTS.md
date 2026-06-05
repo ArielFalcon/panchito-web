@@ -7,7 +7,7 @@ Landing page for **panchito** (autonomous E2E QA agent). Astro 5 static site, ze
 ```bash
 npm install
 npm run dev        # astro dev → http://localhost:4321
-npm run build      # static output → dist/
+npm run build      # static output → dist/ + .vercel/output/ (Vercel adapter)
 npm run preview    # preview the built output
 npm run check      # astro check (type-checks src/ only — NOT public/)
 ```
@@ -36,6 +36,8 @@ public/
 **CSS chain**: `ds-tokens.css` → `landing.css` → imported by `index.astro` frontmatter.
 
 **Scripts** are loaded `is:inline` in `index.astro` — they are **NOT bundled or processed** by Astro.
+
+**Vercel**: `@astrojs/vercel` adapter generates `.vercel/output/` for native Vercel deployment. `astro.config.mjs` has `output: 'static'` with `adapter: vercel()`.
 
 ## Rules an agent WILL miss
 
