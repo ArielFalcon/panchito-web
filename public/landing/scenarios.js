@@ -263,7 +263,7 @@
     };
   }
 
-  /* ── HERO micro-demo · progressive terminal matching real TUI pipeline ── */
+  /* ── HERO micro-demo · viewport-aware, replays on re-enter like demos ── */
   function heroLoop(body) {
     const reduce = window.PUI.reduce;
     body.style.overflow = 'hidden';
@@ -289,7 +289,8 @@
     }
 
     let timers = [];
-    function clear() { timers.forEach(clearTimeout); timers = []; }
+    let playing = false;
+    function clearTimers() { timers.forEach(clearTimeout); timers = []; playing = false; }
     const at = (ms, fn) => timers.push(setTimeout(fn, ms));
 
     function build(animated) {
@@ -306,22 +307,46 @@
         body.style.height = 'auto';
         return;
       }
+      playing = true;
       at(950,  () => append(lineEl('›', t('hero.classify'), 'is-info'), 'in'));
       at(1900, () => append(lineEl('›', t('hero.generate'), 'is-mut'), 'in'));
       at(2950, () => append(lineEl('✓', t('hero.validate'), 'is-pass'), 'in'));
       at(4000, () => append(lineEl('✗', t('hero.execute'), 'is-fail'), 'in'));
       at(5050, () => append(lineEl('', t('hero.verdict'), 'is-fail'), 'in'));
       at(6100, () => append(prCard(), 'show'));
-      at(8600, () => {
-        body.style.transition = 'height 0.5s var(--ease), opacity 0.4s var(--ease)';
-        body.style.opacity = '0';
-        at(450, () => { body.style.opacity = '1'; build(true); });
-      });
+      at(8600, () => { playing = false; });
     }
 
+    function playOnce() { clearTimers(); build(true); }
+    function reset() { clearTimers(); body.innerHTML = ''; body.style.height = 'auto'; body.style.opacity = '1'; }
+
     if (reduce) { build(false); return; }
-    window.addEventListener('langchange', () => { clear(); build(true); });
-    build(true);
+
+    window.addEventListener('langchange', () => { clearTimers(); build(true); });
+
+    // ── viewport-aware like createPlayer ──
+    let onscreen = false;
+    function inView() {
+      const r = body.getBoundingClientRect();
+      const h = window.innerHeight || document.documentElement.clientHeight;
+      return r.top < h * 0.8 && r.bottom > h * 0.2;
+    }
+    function fullyOut() {
+      const r = body.getBoundingClientRect();
+      const h = window.innerHeight || document.documentElement.clientHeight;
+      return r.bottom <= 0 || r.top >= h;
+    }
+    let raf = 0;
+    function check() {
+      if (!onscreen && inView()) { onscreen = true; if (!playing) playOnce(); }
+      else if (onscreen && fullyOut()) { onscreen = false; reset(); }
+    }
+    const onScroll = () => { if (raf) return; raf = requestAnimationFrame(() => { raf = 0; check(); }); };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll, { passive: true });
+    requestAnimationFrame(check);
+    setTimeout(check, 400);
+    window.addEventListener('load', () => setTimeout(check, 60));
   }
 
   /* ── Comparison data ───────────────────────────────────────────────── */
