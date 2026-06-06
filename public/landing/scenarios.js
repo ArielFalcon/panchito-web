@@ -43,7 +43,7 @@
         root.appendChild(wrap);
         return { graph, rail, plan, reset() { graph.reset(); rail.reset(); plan.reset(); plan.setTitle(t('d1.plantitle')); } };
       },
-      duration: 7000,
+      duration: 9000,
       steps: [
         { at: 300, run: (c) => { c.rail.set('classify', 'active'); c.graph.pulse('ds'); c.graph.litNode('ds'); } },
         { at: 1100, run: (c) => c.graph.litEdge('ds', 'dc') },
@@ -57,8 +57,14 @@
         { at: 5000, run: (c) => { c.plan.setTitle(t('d1.plantitle')); c.plan.add(t('d1.plan1')); } },
         { at: 5550, run: (c) => c.plan.add(t('d1.plan2')) },
         { at: 6100, run: (c) => { c.plan.add(t('d1.plan3')); c.rail.set('generate', 'done'); c.rail.set('review', 'active'); } },
-        { at: 6600, run: (c) => { c.rail.set('review', 'done'); c.rail.set('execute', 'active'); } },
-        { at: 6950, run: (c) => c.rail.set('execute', 'done') },
+        { at: 6400, run: (c) => c.plan.addFeedback(0, t('d1.rev1')) },
+        { at: 6650, run: (c) => c.plan.addFeedback(1, t('d1.rev2')) },
+        { at: 6900, run: (c) => c.plan.addFeedback(2, t('d1.rev3')) },
+        { at: 7300, run: (c) => { c.rail.set('review', 'done'); c.rail.set('execute', 'active'); } },
+        { at: 7550, run: (c) => c.plan.setVerdict(0, true, t('d1.ex1')) },
+        { at: 7950, run: (c) => c.plan.setVerdict(1, false, t('d1.ex2')) },
+        { at: 8350, run: (c) => c.plan.setVerdict(2, true, t('d1.ex3')) },
+        { at: 8900, run: (c) => c.rail.set('execute', 'done') },
       ],
     };
   }

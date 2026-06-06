@@ -9,66 +9,99 @@
   const ic = (n, attrs) => `<i data-lucide="${n}"${attrs ? ' ' + attrs : ''}></i>`;
   const refreshIcons = () => { try { window.lucide && lucide.createIcons(); } catch (e) {} };
 
+  /* ── PlayerCoordinator — serializes playback: one demo at a time ─────── */
+  const coordinator = {
+    _active: null,
+    _queue: [],
+    requestPlay(player) {
+      if (this._active === player) return true;
+      if (this._active === null) { this._active = player; return true; }
+      if (!this._queue.includes(player)) this._queue.push(player);
+      return false;
+    },
+    release(player) {
+      var qi = this._queue.indexOf(player);
+      if (qi >= 0) this._queue.splice(qi, 1);
+      if (this._active !== player) return;
+      this._active = null;
+      var next = this._queue.shift();
+      if (next) { setTimeout(function () { coordinator._active = next; next._coordinatedStart(); }, 80); }
+    },
+  };
+
   /* ── createPlayer ──────────────────────────────────────────────────────
      scenario = { mount(root)->ctx, steps:[{at, run(ctx)}], duration }
      Plays ONCE each time the stage enters the viewport. When it fully leaves
      and returns, it resets and plays again. Visibility is rect-driven (scroll
      + resize) so it works even where IntersectionObserver is unavailable.    */
   function createPlayer(root, scenario, opts = {}) {
-    let ctx = null, timers = [], playing = false, finished = false, onscreen = false;
+    var ctx = null, timers = [], playing = false, finished = false, onscreen = false;
 
     function ensureMount() { if (!ctx) { root.innerHTML = ''; ctx = scenario.mount(root); if (ctx.reset) ctx.reset(); refreshIcons(); } }
     function clearTimers() { timers.forEach(clearTimeout); timers = []; }
-    function lastAt() { return scenario.steps.reduce((m, s) => Math.max(m, s.at), 0); }
+    function lastAt() { return scenario.steps.reduce(function (m, s) { return Math.max(m, s.at); }, 0); }
 
-    function runCycle() {
+    function _doRunCycle() {
       ensureMount();
       if (playing) return;
       playing = true; finished = false;
       root.classList.remove('stage-fade');
       if (ctx.reset) ctx.reset();
-      scenario.steps.forEach((s) => { timers.push(setTimeout(() => { s.run(ctx); refreshIcons(); }, s.at)); });
-      const total = (scenario.duration || lastAt()) + 80;
-      timers.push(setTimeout(() => { playing = false; finished = true; opts.onDone && opts.onDone(); }, total));
+      scenario.steps.forEach(function (s) { timers.push(setTimeout(function () { s.run(ctx); refreshIcons(); }, s.at)); });
+      var total = (scenario.duration || lastAt()) + 80;
+      timers.push(setTimeout(function () { playing = false; finished = true; coordinator.release(self); opts.onDone && opts.onDone(); }, total));
     }
 
-    function restart() { clearTimers(); playing = false; finished = false; ensureMount(); root.classList.remove('stage-fade'); if (ctx && ctx.reset) ctx.reset(); if (reduce) return seekToEnd(); runCycle(); }
-    function play() { if (!playing && !finished) restart(); }   // one play until reset
-    function pause() { clearTimers(); playing = false; }
-    function reset() { clearTimers(); playing = false; finished = false; if (ctx && ctx.reset) ctx.reset(); }
-    function seekToEnd() {
-      ensureMount(); clearTimers(); playing = false; finished = true;
-      if (ctx.reset) ctx.reset();
-      scenario.steps.forEach((s) => s.run(ctx));
-      refreshIcons(); opts.onDone && opts.onDone();
+    function runCycle() {
+      if (!coordinator.requestPlay(self)) return;
+      _doRunCycle();
     }
+
+    var self = {
+      _coordinatedStart: _doRunCycle,
+      play: function () { if (!playing && !finished) self.restart(); },
+      pause: function () { clearTimers(); playing = false; coordinator.release(self); },
+      restart: function () { clearTimers(); playing = false; finished = false; coordinator.release(self); ensureMount(); root.classList.remove('stage-fade'); if (ctx && ctx.reset) ctx.reset(); if (reduce) return seekToEnd(); if (coordinator.requestPlay(self)) _doRunCycle(); },
+      reset: function () { clearTimers(); playing = false; finished = false; if (ctx && ctx.reset) ctx.reset(); },
+      seekToEnd: function () {
+        ensureMount(); clearTimers(); playing = false; finished = true;
+        if (ctx.reset) ctx.reset();
+        scenario.steps.forEach(function (s) { s.run(ctx); });
+        refreshIcons(); opts.onDone && opts.onDone();
+      },
+      get done() { return finished; },
+    };
+
+    function play() { if (!playing && !finished) self.restart(); }
+    function pause() { self.pause(); }
+    function reset() { self.reset(); }
 
     function inView() {
-      const r = root.getBoundingClientRect();
-      const h = window.innerHeight || document.documentElement.clientHeight;
-      return r.top < h * 0.8 && r.bottom > h * 0.2;     // a solid band on screen
+      var r = root.getBoundingClientRect();
+      var h = window.innerHeight || document.documentElement.clientHeight;
+      return r.top < h * 0.8 && r.bottom > h * 0.2;
     }
     function fullyOut() {
-      const r = root.getBoundingClientRect();
-      const h = window.innerHeight || document.documentElement.clientHeight;
-      return r.bottom <= 0 || r.top >= h;                // completely off screen
+      var r = root.getBoundingClientRect();
+      var h = window.innerHeight || document.documentElement.clientHeight;
+      return r.bottom <= 0 || r.top >= h;
     }
     function check() {
-      if (!onscreen && inView()) { onscreen = true; play(); }   // entered → play once
-      else if (onscreen && fullyOut()) { onscreen = false; pause(); reset(); }  // left fully → arm replay
+      if (!onscreen && inView()) { onscreen = true; play(); }
+      else if (onscreen && fullyOut()) { onscreen = false; pause(); reset(); }
     }
 
     if (opts.eager !== false) ensureMount();
     if (opts.autoplayOnVisible !== false) {
-      let raf = 0;
-      const onScroll = () => { if (raf) return; raf = requestAnimationFrame(() => { raf = 0; check(); }); };
-      window.addEventListener('scroll', onScroll, { passive: true });
-      window.addEventListener('resize', onScroll, { passive: true });
+      var raf2 = 0;
+      var onScroll2 = function () { if (raf2) return; raf2 = requestAnimationFrame(function () { raf2 = 0; check(); }); };
+      window.addEventListener('scroll', onScroll2, { passive: true });
+      window.addEventListener('resize', onScroll2, { passive: true });
       requestAnimationFrame(check);
       setTimeout(check, 400);
-      window.addEventListener('load', () => setTimeout(check, 60));
+      window.addEventListener('load', function () { setTimeout(check, 60); });
     }
-    return { play, pause, restart, seekToEnd, get done() { return finished; } };
+    return self;
   }
 
   /* ── PipelineRail ─────────────────────────────────────────────────────── */
@@ -336,11 +369,27 @@
   function Plan(title) {
     const w = el('div', 'plan');
     w.innerHTML = `<div class="plan__title">${title}</div>`;
+    var items = [];
     return {
       el: w,
-      add(text) { const i = el('div', 'plan__item', `<span class="pdot"></span>${text}`); w.appendChild(i); setTimeout(() => i.classList.add('show'), 16); },
+      add(text) { var i = el('div', 'plan__item', '<span class="pdot"></span>' + text); items.push(i); w.appendChild(i); setTimeout(function () { i.classList.add('show'); }, 16); return items.length - 1; },
       setTitle(t) { w.querySelector('.plan__title').textContent = t; },
-      reset() { w.querySelectorAll('.plan__item').forEach((i) => i.remove()); },
+      addFeedback(idx, text) {
+        var it = items[idx]; if (!it) return;
+        var fb = it.querySelector('.plan__feedback') || el('div', 'plan__feedback');
+        fb.textContent = text;
+        if (!fb.parentNode) it.appendChild(fb);
+        setTimeout(function () { fb.classList.add('show'); }, 16);
+      },
+      setVerdict(idx, ok, text) {
+        var it = items[idx]; if (!it) return;
+        it.classList.add(ok ? 'is-pass' : 'is-fail');
+        var vd = it.querySelector('.plan__verdict') || el('div', 'plan__verdict');
+        vd.innerHTML = (ok ? '<span class="pv-icon pv-icon--pass">' + ic('check') + '</span>' : '<span class="pv-icon pv-icon--fail">' + ic('x') + '</span>') + '<span>' + text + '</span>';
+        if (!vd.parentNode) it.appendChild(vd);
+        setTimeout(function () { vd.classList.add('show'); refreshIcons(); }, 16);
+      },
+      reset() { w.querySelectorAll('.plan__item').forEach(function (i) { i.remove(); }); items = []; },
     };
   }
 

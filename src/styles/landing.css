@@ -344,7 +344,17 @@ h2.section-title {
 .plan__item { display: flex; align-items: center; gap: 9px; padding: 5px 0; font-family: var(--font-mono); font-size: 12px; color: var(--fg);
   opacity: 0; transform: translateX(-6px); transition: all 0.35s var(--ease); }
 .plan__item.show { opacity: 1; transform: none; }
-.plan__item .pdot { width: 6px; height: 6px; border-radius: 50%; background: var(--brand-bright); flex: none; }
+.plan__item .pdot { width: 6px; height: 6px; border-radius: 50%; background: var(--brand-bright); flex: none; transition: background 0.4s var(--ease); }
+.plan__item.is-pass .pdot { background: var(--pass-d); }
+.plan__item.is-fail .pdot { background: var(--fail-d); }
+.plan__feedback { font-family: var(--font-mono); font-size: 10.5px; color: var(--muted); margin: 3px 0 0 15px; line-height: 1.45; opacity: 0; transition: opacity 0.4s var(--ease); }
+.plan__feedback.show { opacity: 1; }
+.plan__verdict { display: flex; align-items: flex-start; gap: 6px; margin: 4px 0 0 15px; font-family: var(--font-mono); font-size: 10.5px; line-height: 1.45; opacity: 0; transition: opacity 0.35s var(--ease); }
+.plan__verdict.show { opacity: 1; }
+.pv-icon { flex: none; margin-top: 1px; }
+.pv-icon--pass { color: var(--pass-d); }
+.pv-icon--fail { color: var(--fail-d); }
+.plan__verdict span { color: var(--fg); }
 
 /* ═══ Loop crossfade (applied to a stage root between cycles) ═════════ */
 .stage-surface { transition: opacity 0.42s var(--ease), transform 0.42s var(--ease), height 0.55s var(--ease); min-width: 0; max-width: 100%; }
