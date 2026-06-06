@@ -33,15 +33,29 @@
     ],
   };
   function demo1() {
+    var stageEnds = { classify: 4300, generate: 6300, review: 7450, execute: 9000 };
     return {
       mount(root) {
-        const wrap = el('div', 'stage-surface');
-        const graph = Graph(GRAPH_MODEL);
-        const rail = Rail(['classify', 'generate', 'review', 'execute']);
-        const plan = Plan(t('d1.plantitle'));
+        var wrap = el('div', 'stage-surface');
+        var graph = Graph(GRAPH_MODEL);
+        var rail = Rail(['classify', 'generate', 'review', 'execute']);
+        var plan = Plan(t('d1.plantitle'));
         wrap.appendChild(graph.el); wrap.appendChild(rail.el); wrap.appendChild(plan.el);
         root.appendChild(wrap);
-        return { graph, rail, plan, reset() { graph.reset(); rail.reset(); plan.reset(); plan.setTitle(t('d1.plantitle')); } };
+        var self = { graph: graph, rail: rail, plan: plan, _playUpTo: undefined, reset: function () { graph.reset(); rail.reset(); plan.reset(); plan.setTitle(t('d1.plantitle')); self._playUpTo = undefined; } };
+        // interactive rail — clicking a stage plays up to that stage
+        var coord = window.PlayerCoordinator;
+        rail.el.querySelectorAll('.rail__stage').forEach(function (s, i) {
+          var name = ['classify', 'generate', 'review', 'execute'][i];
+          s.style.cursor = 'pointer';
+          s.addEventListener('click', function () {
+            coord.releaseAll();
+            self.reset();
+            self._playUpTo = stageEnds[name] || 9000;
+            // re-mount returns self; the player will call _coordinatedStart
+          });
+        });
+        return self;
       },
       duration: 9000,
       steps: [
@@ -269,35 +283,36 @@
     };
   }
 
-  /* ── HERO micro-demo · viewport-aware, replays on re-enter like demos ── */
+  /* ── HERO micro-demo · viewport-aware, coordinator-compatible ── */
   function heroLoop(body) {
-    const reduce = window.PUI.reduce;
+    var reduce = window.PUI.reduce;
+    var coord = window.PlayerCoordinator;
     body.style.overflow = 'hidden';
     body.style.transition = 'height 0.5s var(--ease)';
 
     function lineEl(g, txt, cls) {
-      const l = el('div', 'term__line' + (cls ? ' ' + cls : ''));
-      l.innerHTML = `<span class="g">${g}</span><span>${txt}</span>`;
+      var l = el('div', 'term__line' + (cls ? ' ' + cls : ''));
+      l.innerHTML = '<span class="g">' + g + '</span><span>' + txt + '</span>';
       l.style.fontFamily = 'var(--font-mono)'; l.style.fontSize = '12px'; l.style.lineHeight = '1.9';
       return l;
     }
     function prCard() {
-      const card = el('div', 'ghcard ghcard--pr');
+      var card = el('div', 'ghcard ghcard--pr');
       card.style.margin = '12px 0 0';
-      card.innerHTML = `<div class="ghcard__head">${window.PUI.ic('git-pull-request', 'class="ghcard__icon"')}<span class="ghcard__title">${t('hero.pr')}</span></div><div class="ghcard__meta"><span class="ghcard__automerge">${window.PUI.ic('check', 'style="width:13px;height:13px"')} ${t('hero.prsub')}</span></div>`;
+      card.innerHTML = '<div class="ghcard__head">' + window.PUI.ic('git-pull-request', 'class="ghcard__icon"') + '<span class="ghcard__title">' + t('hero.pr') + '</span></div><div class="ghcard__meta"><span class="ghcard__automerge">' + window.PUI.ic('check', 'style="width:13px;height:13px"') + ' ' + t('hero.prsub') + '</span></div>';
       return card;
     }
     function grow() { body.style.height = body.scrollHeight + 'px'; }
     function append(node, reveal) {
       body.appendChild(node); grow();
-      if (reveal) setTimeout(() => node.classList.add(reveal), 30);
+      if (reveal) setTimeout(function () { node.classList.add(reveal); }, 30);
       window.PUI.refreshIcons();
     }
 
-    let timers = [];
-    let playing = false;
+    var timers = [];
+    var playing = false;
     function clearTimers() { timers.forEach(clearTimeout); timers = []; playing = false; }
-    const at = (ms, fn) => timers.push(setTimeout(fn, ms));
+    var at = function (ms, fn) { timers.push(setTimeout(fn, ms)); };
 
     function build(animated) {
       body.innerHTML = ''; body.style.height = 'auto';
@@ -308,51 +323,54 @@
         append(lineEl('✓', t('hero.validate'), 'is-pass'), null);
         append(lineEl('✗', t('hero.execute'), 'is-fail'), null);
         append(lineEl('', t('hero.verdict'), 'is-fail'), null);
-        const c = prCard(); c.classList.add('show'); append(c, null);
-        body.querySelectorAll('.term__line').forEach((l) => l.classList.add('in'));
+        var c = prCard(); c.classList.add('show'); append(c, null);
+        body.querySelectorAll('.term__line').forEach(function (l) { l.classList.add('in'); });
         body.style.height = 'auto';
         return;
       }
       playing = true;
-      at(950,  () => append(lineEl('›', t('hero.classify'), 'is-info'), 'in'));
-      at(1900, () => append(lineEl('›', t('hero.generate'), 'is-mut'), 'in'));
-      at(2950, () => append(lineEl('✓', t('hero.validate'), 'is-pass'), 'in'));
-      at(4000, () => append(lineEl('✗', t('hero.execute'), 'is-fail'), 'in'));
-      at(5050, () => append(lineEl('', t('hero.verdict'), 'is-fail'), 'in'));
-      at(6100, () => append(prCard(), 'show'));
-      at(8600, () => { playing = false; });
+      at(950,  function () { append(lineEl('›', t('hero.classify'), 'is-info'), 'in'); });
+      at(1900, function () { append(lineEl('›', t('hero.generate'), 'is-mut'), 'in'); });
+      at(2950, function () { append(lineEl('✓', t('hero.validate'), 'is-pass'), 'in'); });
+      at(4000, function () { append(lineEl('✗', t('hero.execute'), 'is-fail'), 'in'); });
+      at(5050, function () { append(lineEl('', t('hero.verdict'), 'is-fail'), 'in'); });
+      at(6100, function () { append(prCard(), 'show'); });
+      at(8600, function () { playing = false; coord.release(player); });
     }
 
-    function playOnce() { clearTimers(); build(true); }
-    function reset() { clearTimers(); body.innerHTML = ''; body.style.height = 'auto'; body.style.opacity = '1'; }
+    function start() { clearTimers(); build(true); }
+    function pause() { clearTimers(); body.innerHTML = ''; body.style.height = 'auto'; body.style.opacity = '1'; }
+    function reset() { pause(); }
 
-    if (reduce) { build(false); return; }
+    if (reduce) { build(false); return { start: function(){}, pause: function(){} }; }
 
-    window.addEventListener('langchange', () => { clearTimers(); build(true); });
+    window.addEventListener('langchange', function () { clearTimers(); build(true); });
 
-    // ── viewport-aware like createPlayer ──
-    let onscreen = false;
+    var onscreen = false;
     function inView() {
-      const r = body.getBoundingClientRect();
-      const h = window.innerHeight || document.documentElement.clientHeight;
+      var r = body.getBoundingClientRect();
+      var h = window.innerHeight || document.documentElement.clientHeight;
       return r.top < h * 0.8 && r.bottom > h * 0.2;
     }
     function fullyOut() {
-      const r = body.getBoundingClientRect();
-      const h = window.innerHeight || document.documentElement.clientHeight;
+      var r = body.getBoundingClientRect();
+      var h = window.innerHeight || document.documentElement.clientHeight;
       return r.bottom <= 0 || r.top >= h;
     }
-    let raf = 0;
+    var raf = 0;
     function check() {
-      if (!onscreen && inView()) { onscreen = true; if (!playing) playOnce(); }
-      else if (onscreen && fullyOut()) { onscreen = false; reset(); }
+      if (!onscreen && inView()) { onscreen = true; if (!playing && coord.requestPlay(player)) start(); }
+      else if (onscreen && fullyOut()) { onscreen = false; pause(); coord.release(player); }
     }
-    const onScroll = () => { if (raf) return; raf = requestAnimationFrame(() => { raf = 0; check(); }); };
+    var onScroll = function () { if (raf) return; raf = requestAnimationFrame(function () { raf = 0; check(); }); };
     window.addEventListener('scroll', onScroll, { passive: true });
     window.addEventListener('resize', onScroll, { passive: true });
     requestAnimationFrame(check);
     setTimeout(check, 400);
-    window.addEventListener('load', () => setTimeout(check, 60));
+    window.addEventListener('load', function () { setTimeout(check, 60); });
+
+    var player = { start: start, pause: pause, reset: reset };
+    return player;
   }
 
   /* ── Comparison data ───────────────────────────────────────────────── */

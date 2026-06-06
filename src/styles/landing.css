@@ -549,22 +549,68 @@ h2.section-title {
   .nav__links { display: none; }
 }
 @media (max-width: 620px) {
+  html { font-size: 15px; }
+  body { font-size: 15px; }
+  .wrap { padding: 0 16px; }
+  .section { padding: 48px 0; }
+  .hero { padding: 80px 0 48px; }
+  .display { font-size: clamp(1.8rem, 8vw, 2.8rem); }
+  h2.section-title { font-size: clamp(1.4rem, 5vw, 2rem); }
+  .lede { font-size: 1rem; }
+  .hero__h1 { font-size: clamp(1.7rem, 7vw, 2.6rem); }
+  .hero__meta { gap: 10px 14px; font-size: 12px; flex-wrap: wrap; }
+  .hero__cta { flex-direction: column; gap: 10px; }
+  .hero__cta .btn { width: 100%; justify-content: center; }
+  .demo { gap: 20px; }
+  .demo__stage { max-width: 100%; overflow: hidden; }
+  .stage-surface { max-width: 100%; overflow: hidden; }
+  .cmp__scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 0 -16px; padding: 0 16px; }
+  .cmp { min-width: 560px; font-size: 11px; }
+  .cmp th, .cmp td { padding: 8px 6px; }
+  .code { overflow-x: auto; font-size: 11px; }
+  .code__line { padding: 0 10px; gap: 8px; }
+  .term__body { padding: 10px 12px; font-size: 11px; }
+  .term__line { gap: 6px; }
+  .term__line .ts { display: none; }
+  .rail { padding: 12px 14px; gap: 2px; }
+  .rail__stage { font-size: 10px; padding: 4px 7px; }
   .selfix__lane { grid-template-columns: 1fr; gap: 8px; }
   .selfix__arrow { display: none; }
-  .wrap { padding: 0 18px; }
-  .cmp__scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-  .cmp { min-width: 600px; }
-  .hero__cta .btn { flex: 1; justify-content: center; }
+  .nav__inner { gap: 10px; padding: 0 16px; }
   .nav .lang { display: none; }
-  .nav__inner { gap: 12px; }
-  .hero__meta { gap: 14px 18px; }
-}
-@media (max-width: 480px) {
+  .nav .btn[href="#engine"] { padding: 6px 12px; font-size: 12px; }
+  .nav__word { font-size: 17px; }
+  .footer__inner { flex-direction: column; align-items: flex-start; gap: 16px; padding: 0 16px; }
+  .engine__controls { gap: 14px; }
+  .engine__head { text-align: left; }
+  .chatpanel__head { flex-wrap: wrap; gap: 8px; }
   .chsw__l { display: none; }
-  .chatpanel__switch button { padding: 6px 8px; }
-  .nav__word { font-size: 18px; }
-  .nav .btn[href="#engine"] { display: none; }
-  .footer__inner { flex-direction: column; align-items: flex-start; gap: 18px; }
+  .chatpanel__switch button { padding: 5px 7px; }
+  .verdict { margin: 0 12px 10px; padding: 10px 12px; font-size: 11px; }
+  .verdict.show { margin: 0 12px 10px; padding: 10px 12px; }
+  .humanerr { margin: 0 12px 10px; font-size: 12px; }
+  .humanerr.show { margin: 0 12px 10px; padding: 10px 12px; }
+  .ghcard { margin: 12px; font-size: 12px; }
+  .ghcard.show { margin: 12px; }
+  .ghcard__head { padding: 9px 12px; }
+  .ghcard__meta { padding: 9px 12px; }
+  .plan { padding: 10px 12px; }
+  .plan__item { font-size: 11px; }
+  .plan__feedback { font-size: 10px; margin-left: 10px; }
+  .plan__verdict { font-size: 10px; margin-left: 10px; }
+  graph { max-width: 100%; }
+  .hero__visual { max-width: 100%; }
+  .microdemo { max-width: 100%; }
+}
+@media (max-width: 380px) {
+  .wrap { padding: 0 12px; }
+  .nav__inner { padding: 0 12px; }
+  .section { padding: 36px 0; }
+  .hero { padding: 64px 0 36px; }
+  .rail__stage { font-size: 9px; padding: 3px 5px; }
+  .rail__stage .rdot { width: 6px; height: 6px; }
+  .rail__sep { width: 8px; }
+  .cmp { min-width: 480px; font-size: 10px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .reveal { opacity: 1 !important; transform: none !important; transition: none !important; }

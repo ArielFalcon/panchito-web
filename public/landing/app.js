@@ -43,15 +43,17 @@
     players.demo3 = window.createPlayer($('#stage-3'), S.demo3());
     players.demo4 = window.createPlayer($('#stage-4'), S.demo4());
 
-    // replay buttons
-    $$('[data-replay]').forEach((b) => b.addEventListener('click', () => { const p = players[b.dataset.replay]; p && p.restart(); }));
+    // replay buttons — kill all other animations first
+    var coord = window.PlayerCoordinator;
+    $$('[data-replay]').forEach(function (b) { b.addEventListener('click', function () { coord.releaseAll(); var p = players[b.dataset.replay]; p && p.restart(); }); });
 
     // demo2 ending toggle
-    $$('#demo-2 [data-ending]').forEach((b) => b.addEventListener('click', () => {
-      $$('#demo-2 [data-ending]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    $$('#demo-2 [data-ending]').forEach(function (b) { b.addEventListener('click', function () {
+      $$('#demo-2 [data-ending]').forEach(function (x) { x.setAttribute('aria-pressed', String(x === b)); });
       window.LandingState.d2ending = b.dataset.ending;
+      coord.releaseAll();
       players.demo2.restart();
-    }));
+    }); });
 
     // ── scenario engine ──
     const rail = window.PUI.Rail();
@@ -84,8 +86,9 @@
       $('#wl-ok').classList.add('show'); $('#wl-email').value = '';
     });
 
-    // ── hero loop ──
-    S.heroLoop($('#hero-demo-body'));
+    // ── hero loop — registered in coordinator so it doesn't collide with demos ──
+    var hero = S.heroLoop($('#hero-demo-body'));
+    coord.register(hero);
 
     // ── language change → re-render dynamic copy ──
     window.addEventListener('langchange', () => {

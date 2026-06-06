@@ -10,24 +10,37 @@
   const refreshIcons = () => { try { window.lucide && lucide.createIcons(); } catch (e) {} };
 
   /* ── PlayerCoordinator — serializes playback: one demo at a time ─────── */
-  const coordinator = {
+  var coordinator = {
     _active: null,
     _queue: [],
-    requestPlay(player) {
+    requestPlay: function (player) {
       if (this._active === player) return true;
       if (this._active === null) { this._active = player; return true; }
-      if (!this._queue.includes(player)) this._queue.push(player);
+      if (this._queue.indexOf(player) < 0) this._queue.push(player);
       return false;
     },
-    release(player) {
+    release: function (player) {
       var qi = this._queue.indexOf(player);
       if (qi >= 0) this._queue.splice(qi, 1);
       if (this._active !== player) return;
       this._active = null;
       var next = this._queue.shift();
-      if (next) { setTimeout(function () { coordinator._active = next; next._coordinatedStart(); }, 80); }
+      if (next) { var self = this; setTimeout(function () { self._active = next; next._coordinatedStart(); }, 80); }
+    },
+    releaseAll: function () {
+      if (this._active && this._active.pause) this._active.pause();
+      this._active = null;
+      this._queue = [];
+    },
+    register: function (player) {
+      var self = this;
+      player._coordinatedStart = player._coordinatedStart || player.start || (function () {});
+      var origStart = player._coordinatedStart;
+      player._coordinatedStart = function () { self._active = player; origStart.call(player); };
+      player._releaseFromCoordinator = function () { self.release(player); };
     },
   };
+  window.PlayerCoordinator = coordinator;
 
   /* ── createPlayer ──────────────────────────────────────────────────────
      scenario = { mount(root)->ctx, steps:[{at, run(ctx)}], duration }
@@ -47,9 +60,14 @@
       playing = true; finished = false;
       root.classList.remove('stage-fade');
       if (ctx.reset) ctx.reset();
-      scenario.steps.forEach(function (s) { timers.push(setTimeout(function () { s.run(ctx); refreshIcons(); }, s.at)); });
+      var upTo = ctx._playUpTo;
+      scenario.steps.forEach(function (s) {
+        if (upTo && s.at > upTo) return;
+        timers.push(setTimeout(function () { s.run(ctx); refreshIcons(); }, s.at));
+      });
       var total = (scenario.duration || lastAt()) + 80;
-      timers.push(setTimeout(function () { playing = false; finished = true; coordinator.release(self); opts.onDone && opts.onDone(); }, total));
+      if (upTo) total = upTo + 80;
+      timers.push(setTimeout(function () { playing = false; finished = true; ctx._playUpTo = undefined; coordinator.release(self); opts.onDone && opts.onDone(); }, total));
     }
 
     function runCycle() {
