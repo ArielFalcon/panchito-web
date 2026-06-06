@@ -1,11 +1,12 @@
 /* ═══════════════════════════════════════════════════════════════════════
-   Panchito landing — boot. Wires i18n, nav, the four demo players, the
-   scenario engine, comparison table, waitlist, and the hero loop.
+   Panchito landing — boot. Wires i18n, nav, the hero + four demo players (all
+   driven by the AnimationDirector), the scenario engine, comparison, waitlist.
    ═══════════════════════════════════════════════════════════════════════ */
 (function () {
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
   const S = window.LandingScenarios;
+  const D = window.AnimationDirector;
   const players = {};
 
   function boot() {
@@ -20,7 +21,7 @@
     const onScroll = () => nav.classList.toggle('is-solid', window.scrollY > 24);
     onScroll(); window.addEventListener('scroll', onScroll, { passive: true });
 
-    // ── reveal on scroll (rect-driven; robust where IO is unavailable) ──
+    // ── reveal copy on scroll ──
     const revealEls = $$('.demo__text, .engine__head, .cta, #compare .kicker, #compare .section-title, #compare .lede');
     revealEls.forEach((e) => e.classList.add('reveal'));
     let rafR = 0;
@@ -37,25 +38,29 @@
     window.addEventListener('resize', onRevealScroll, { passive: true });
     revealCheck(); setTimeout(revealCheck, 300); window.addEventListener('load', () => setTimeout(revealCheck, 60));
 
-    // ── demo players ──
-    players.demo1 = window.createPlayer($('#stage-1'), S.demo1());
-    players.demo2 = window.createPlayer($('#stage-2'), S.demo2());
-    players.demo3 = window.createPlayer($('#stage-3'), S.demo3());
-    players.demo4 = window.createPlayer($('#stage-4'), S.demo4());
+    // ── players — register the hero FIRST so it wins ties against Demo 1 just
+    //    below it; each player's REGION is its whole section (the reader's focus). ──
+    players.hero = S.heroLoop($('#hero-demo-body'), { region: $('#hero') });
+    players.demo1 = window.createPlayer($('#stage-1'), S.demo1(), { region: $('#demo-1') });
+    players.demo2 = window.createPlayer($('#stage-2'), S.demo2(), { region: $('#demo-2') });
+    players.demo3 = window.createPlayer($('#stage-3'), S.demo3(), { region: $('#demo-3') });
+    players.demo4 = window.createPlayer($('#stage-4'), S.demo4(), { region: $('#demo-4') });
+    D.start();
 
-    // replay buttons — kill all other animations first
-    var coord = window.PlayerCoordinator;
-    $$('[data-replay]').forEach(function (b) { b.addEventListener('click', function () { coord.releaseAll(); var p = players[b.dataset.replay]; p && p.restart(); }); });
+    // replay buttons — force that demo to replay, taking the slot
+    $$('[data-replay]').forEach((b) => b.addEventListener('click', () => {
+      const p = players[b.dataset.replay];
+      if (p) D.forcePlay(p);
+    }));
 
     // demo2 ending toggle
-    $$('#demo-2 [data-ending]').forEach(function (b) { b.addEventListener('click', function () {
-      $$('#demo-2 [data-ending]').forEach(function (x) { x.setAttribute('aria-pressed', String(x === b)); });
+    $$('#demo-2 [data-ending]').forEach((b) => b.addEventListener('click', () => {
+      $$('#demo-2 [data-ending]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
       window.LandingState.d2ending = b.dataset.ending;
-      coord.releaseAll();
-      players.demo2.restart();
-    }); });
+      D.forcePlay(players.demo2);
+    }));
 
-    // ── scenario engine ──
+    // ── scenario engine (on-demand; preempts the auto demos via claim/release) ──
     const rail = window.PUI.Rail();
     $('#eng-rail').appendChild(rail.el);
     const makeEngine = S.makeEngine(rail);
@@ -70,8 +75,13 @@
       const full = $('#eng-full').checked;
       const scen = makeEngine({ repo, depth, full });
       if (enginePlayer) enginePlayer.pause();
-      enginePlayer = window.createPlayer($('#eng-output'), scen, { autoplayOnVisible: false, loop: false });
-      enginePlayer.restart();
+      enginePlayer = window.createPlayer($('#eng-output'), scen, {
+        autoRegister: false,
+        onDone: () => D.release(enginePlayer),
+      });
+      D.claim(enginePlayer);
+      enginePlayer.reset();
+      enginePlayer.start();
     });
 
     // ── comparison table ──
@@ -86,16 +96,12 @@
       $('#wl-ok').classList.add('show'); $('#wl-email').value = '';
     });
 
-    // ── hero loop — registered in coordinator so it doesn't collide with demos ──
-    var hero = S.heroLoop($('#hero-demo-body'));
-    coord.register(hero);
-
-    // ── language change → re-render dynamic copy ──
+    // ── language change → re-render dynamic copy in the new language ──
     window.addEventListener('langchange', () => {
       window.lucide && lucide.createIcons();
       renderCompare();
-      // refresh demos that have already finished so copy matches language
-      ['demo1', 'demo2', 'demo3', 'demo4'].forEach((k) => { const p = players[k]; if (p && p.done) p.restart(); });
+      D.players.forEach((p) => { if (p !== D.active) p.reset(); });
+      if (D.active) D.forcePlay(D.active);
     });
   }
 

@@ -4,7 +4,7 @@
 (function () {
   const DICT = {
     en: {
-      'nav.how': 'how it works', 'nav.engine': 'live engine', 'nav.compare': 'compare', 'nav.cta': 'Run a scenario',
+      'nav.how': 'how it works', 'nav.engine': 'live engine', 'nav.compare': 'compare', 'nav.cta': 'Run a scenario', 'nav.console': 'console',
 
       'hero.kicker': 'Autonomous E2E QA',
       'hero.h1': 'Tests every deploy.\nTrusts none of them.',
@@ -33,7 +33,7 @@
       'd1.ex2': 'refund total off by $2.50 — partial refund edge case',
       'd1.ex3': 'price change reflected in cart after refresh',
 
-      'd2.tag': 'the full flow', 'd2.kicker': 'Proof, not green',
+      'd2.tag': 'the full flow', 'd2.kicker': 'Proof, not green', 'd2.plain': 'plain language',
       'd2.h2': "A test that runs green isn't proof. panchito proves it.",
       'd2.sub': 'It writes the spec, a different model reviews it for real assertions, and change-coverage confirms the test actually executes the lines you changed. Then it runs against your live DEV and tells you, in plain language, what broke. Green and approved becomes a PR into your repo. Broken becomes a GitHub Issue. Your tests, your git, no lock-in.',
       'd2.ending': 'Ending:', 'd2.green': 'green → PR', 'd2.red': 'broken → Issue',
@@ -96,7 +96,7 @@
       'footer.wink': 'made with panchito',
     },
     es: {
-      'nav.how': 'cómo funciona', 'nav.engine': 'motor en vivo', 'nav.compare': 'comparar', 'nav.cta': 'Ejecutar un escenario',
+      'nav.how': 'cómo funciona', 'nav.engine': 'motor en vivo', 'nav.compare': 'comparar', 'nav.cta': 'Ejecutar un escenario', 'nav.console': 'consola',
 
       'hero.kicker': 'QA E2E autónomo',
       'hero.h1': 'Prueba cada deploy.\nNo confía en ninguno.',
@@ -116,8 +116,8 @@
       'd1.tag': 'análisis', 'd1.kicker': 'Blast radius',
       'd1.h2': 'No prueba todo. Prueba lo que tu cambio puede romper.',
       'd1.sub': 'panchito mapea tu código, en todos tus repos del frontend a los microservicios, como un grafo de dependencias. Cuando entra un commit, hace crecer el blast-radius a través de relaciones reales: una clase que cambiaste, inyectada tres servicios más allá, igual se enciende. Después arma un plan de tests enfocado, antes de ejecutar un solo test.',
-      'd1.capk': 'Por defecto: diff', 'd1.cap': '(blast radius de un cambio). También: manual (prueba lo que pidas) | complete (auditar toda la suite).',
-      'd1.plantitle': 'plan de tests | 3 flujos', 'd1.plan1': 'checkout con cupón', 'd1.plan2': 'reembolso de una orden', 'd1.plan3': 'actualización de precios',
+      'd1.capk': 'Por defecto: diff', 'd1.cap': '(blast radius de un cambio). También: manual (prueba lo que pidas) · complete (auditar toda la suite).',
+      'd1.plantitle': 'plan de tests · 3 flujos', 'd1.plan1': 'checkout con cupón', 'd1.plan2': 'reembolso de una orden', 'd1.plan3': 'actualización de precios',
       'd1.rev1': 'verifica el descuento aplicado al total · aprobado',
       'd1.rev2': 'cubre el flujo completo de reembolso · aprobado',
       'd1.rev3': 'nunca verifica el nuevo precio · rechazado',
@@ -125,7 +125,7 @@
       'd1.ex2': 'total de reembolso con $2.50 de diferencia — caso borde de reembolso parcial',
       'd1.ex3': 'cambio de precio reflejado en el carrito tras actualizar',
 
-      'd2.tag': 'el flujo completo', 'd2.kicker': 'Prueba, no verde',
+      'd2.tag': 'el flujo completo', 'd2.kicker': 'Prueba, no verde', 'd2.plain': 'lenguaje claro',
       'd2.h2': 'Un test en verde no es una prueba. panchito lo demuestra.',
       'd2.sub': 'Escribe el spec, un modelo distinto lo revisa buscando asserts reales, y el change-coverage confirma que el test realmente ejecuta las líneas que cambiaste. Después ejecuta contra tu DEV vivo y te dice, en lenguaje claro, qué se rompió. Verde y aprobado se vuelve un PR a tu repo. Roto se vuelve un GitHub Issue. Tus tests, tu git, sin lock-in.',
       'd2.ending': 'Final:', 'd2.green': 'verde → PR', 'd2.red': 'roto → Issue',
@@ -148,7 +148,7 @@
       'd3.act1': 'abrir PR', 'd3.act2': 'ver ejecución',
       'd3.r1': 'Abriendo PR #214 con el fix del selector. Pido review ahora.',
       'd3.r2': 'Ejecución #318: 12 en verde, 1 flaky (en cuarentena). ¿Te paso el trace?',
-      'd3.try': 'En vivo | cambia de canal o toca una acción.',
+      'd3.try': 'En vivo · cambia de canal o toca una acción.',
 
       'd4.tag': 'recursivo', 'd4.kicker': 'Se prueba a sí mismo',
       'd4.h2': 'Lo primero que panchito prueba es panchito.',
@@ -167,7 +167,7 @@
 
       'eng.kicker': 'Motor en vivo', 'eng.h2': 'No nos creas. Pruébalo.',
       'eng.sub': 'Apúntalo a un repo, elige hasta qué profundidad mirar, y mira todo el pipeline trabajar, en vivo.',
-      'eng.repo': 'Repositorio', 'eng.depth': 'Analizar los últimos N commits', 'eng.or': '| o |',
+      'eng.repo': 'Repositorio', 'eng.depth': 'Analizar los últimos N commits', 'eng.or': '· o ·',
       'eng.full': 'Análisis completo: auditar todo el repo', 'eng.run': 'Ejecutar pipeline',
       'eng.cap': 'El modo demo está limitado a unos pocos commits y un puñado de tests, para que sientas cómo es en segundos, no en una maratón de 80 tests.',
       'eng.idle': 'configura una ejecución y presiona play', 'eng.running': 'ejecutando…',
@@ -202,7 +202,7 @@
     document.querySelectorAll('[data-i18n]').forEach((el) => {
       const k = el.getAttribute('data-i18n');
       const val = t(k);
-      if (val.indexOf('\n') >= 0) el.innerHTML = val.split('\n').map(s => s).join('<br>');
+      if (val.indexOf('\n') >= 0) el.innerHTML = val.split('\n').join('<br>');
       else el.textContent = val;
     });
     document.querySelectorAll('[data-i18n-ph]').forEach((el) => {

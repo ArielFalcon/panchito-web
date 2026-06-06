@@ -9,116 +9,120 @@
   const ic = (n, attrs) => `<i data-lucide="${n}"${attrs ? ' ' + attrs : ''}></i>`;
   const refreshIcons = () => { try { window.lucide && lucide.createIcons(); } catch (e) {} };
 
-  /* ── PlayerCoordinator — serializes playback: one demo at a time ─────── */
-  var coordinator = {
-    _active: null,
-    _queue: [],
-    requestPlay: function (player) {
-      if (this._active === player) return true;
-      if (this._active === null) { this._active = player; return true; }
-      if (this._queue.indexOf(player) < 0) this._queue.push(player);
-      return false;
+  /* ── AnimationDirector ──────────────────────────────────────────────────
+     One demo animates at a time: the one the reader is looking at. Selection is
+     a pure function of scroll position (no queues, no timers). Each registered
+     player scores by how much of its REGION fills the viewport's focus band;
+     the highest score wins. Hysteresis stops flicker at boundaries, and ties
+     favour the upper player so the hero is never starved by Demo 1 just below.
+     Players are dumb: { region, start(), pause(), reset(), isFinished() }.     */
+  var Director = {
+    players: [],
+    active: null,
+    claimed: null,
+    ENTER: 0.04,      // min focus score to begin animating
+    MARGIN: 0.12,     // a challenger must beat the active by this to take over
+    FOCUS_TOP: 0.15,  // focus band = middle 70% of the viewport
+    FOCUS_BOT: 0.85,
+
+    register: function (p) { if (this.players.indexOf(p) < 0) this.players.push(p); },
+
+    _score: function (region) {
+      var vh = window.innerHeight || document.documentElement.clientHeight;
+      var r = region.getBoundingClientRect();
+      var ft = vh * this.FOCUS_TOP, fb = vh * this.FOCUS_BOT;
+      var overlap = Math.max(0, Math.min(r.bottom, fb) - Math.max(r.top, ft));
+      var denom = Math.min(r.height, fb - ft);
+      return denom > 0 ? overlap / denom : 0;
     },
-    release: function (player) {
-      var qi = this._queue.indexOf(player);
-      if (qi >= 0) this._queue.splice(qi, 1);
-      if (this._active !== player) return;
-      this._active = null;
-      var next = this._queue.shift();
-      if (next) { var self = this; setTimeout(function () { self._active = next; next._coordinatedStart(); }, 80); }
+    _visible: function (region) {
+      var vh = window.innerHeight || document.documentElement.clientHeight;
+      var r = region.getBoundingClientRect();
+      return r.bottom > 0 && r.top < vh;
     },
-    releaseAll: function () {
-      if (this._active && this._active.pause) this._active.pause();
-      this._active = null;
-      this._queue = [];
+    _pick: function () {
+      var best = null, bestScore = 0;
+      for (var i = 0; i < this.players.length; i++) {
+        var s = this._score(this.players[i].region);
+        if (s > bestScore + 0.001) { best = this.players[i]; bestScore = s; } // strict ⇒ earliest wins ties
+      }
+      return { player: best, score: bestScore };
     },
-    register: function (player) {
+    _activate: function (p) { if (this.active === p) return; this.active = p; p.start(); },
+    _deactivate: function () { if (!this.active) return; this.active.pause(); this.active.reset(); this.active = null; },
+
+    evaluate: function () {
+      if (this.claimed) return;
+      var top = this._pick();
+      if (this.active) {
+        if (!this._visible(this.active.region)) { this._deactivate(); }
+        else if (top.player && top.player !== this.active && top.score > this._score(this.active.region) + this.MARGIN) {
+          this._deactivate(); this._activate(top.player); return;
+        }
+      }
+      if (!this.active && top.player && top.score > this.ENTER) this._activate(top.player);
+    },
+
+    forcePlay: function (p) {           // user-initiated replay of a specific demo
+      if (this.active && this.active !== p) this._deactivate();
+      this.active = p; p.reset(); p.start();
+    },
+    claim: function (p) { this._deactivate(); this.claimed = p; },     // on-demand engine takeover
+    release: function (p) { if (this.claimed === p) { this.claimed = null; this.evaluate(); } },
+
+    start: function () {
       var self = this;
-      player._coordinatedStart = player._coordinatedStart || player.start || (function () {});
-      var origStart = player._coordinatedStart;
-      player._coordinatedStart = function () { self._active = player; origStart.call(player); };
-      player._releaseFromCoordinator = function () { self.release(player); };
+      if (reduce) { this.players.forEach(function (p) { p.start(); }); return; } // no motion: show all final frames
+      var raf = 0;
+      var tick = function () { if (raf) return; raf = requestAnimationFrame(function () { raf = 0; self.evaluate(); }); };
+      window.addEventListener('scroll', tick, { passive: true });
+      window.addEventListener('resize', tick, { passive: true });
+      requestAnimationFrame(function () { self.evaluate(); });
+      setTimeout(function () { self.evaluate(); }, 300);
+      window.addEventListener('load', function () { setTimeout(function () { self.evaluate(); }, 60); });
     },
   };
-  window.PlayerCoordinator = coordinator;
+  window.AnimationDirector = Director;
 
   /* ── createPlayer ──────────────────────────────────────────────────────
      scenario = { mount(root)->ctx, steps:[{at, run(ctx)}], duration }
-     Plays ONCE each time the stage enters the viewport. When it fully leaves
-     and returns, it resets and plays again. Visibility is rect-driven (scroll
-     + resize) so it works even where IntersectionObserver is unavailable.    */
-  function createPlayer(root, scenario, opts = {}) {
-    var ctx = null, timers = [], playing = false, finished = false, onscreen = false;
+     A player only knows how to run / pause / reset its own timeline and which
+     DOM region represents it on screen. The AnimationDirector decides WHEN it
+     runs (one demo at a time, whichever the reader is looking at).             */
+  function createPlayer(root, scenario, opts) {
+    opts = opts || {};
+    var ctx = null, timers = [], playing = false, finished = false;
 
-    function ensureMount() { if (!ctx) { root.innerHTML = ''; ctx = scenario.mount(root); if (ctx.reset) ctx.reset(); refreshIcons(); } }
+    function ensureMount() { if (!ctx) { root.innerHTML = ''; ctx = scenario.mount(root, self); if (ctx.reset) ctx.reset(); refreshIcons(); } }
     function clearTimers() { timers.forEach(clearTimeout); timers = []; }
     function lastAt() { return scenario.steps.reduce(function (m, s) { return Math.max(m, s.at); }, 0); }
 
-    function _doRunCycle() {
-      ensureMount();
-      if (playing) return;
-      playing = true; finished = false;
-      root.classList.remove('stage-fade');
-      if (ctx.reset) ctx.reset();
-      var upTo = ctx._playUpTo;
-      scenario.steps.forEach(function (s) {
-        if (upTo && s.at > upTo) return;
-        timers.push(setTimeout(function () { s.run(ctx); refreshIcons(); }, s.at));
-      });
-      var total = (scenario.duration || lastAt()) + 80;
-      if (upTo) total = upTo + 80;
-      timers.push(setTimeout(function () { playing = false; finished = true; ctx._playUpTo = undefined; coordinator.release(self); opts.onDone && opts.onDone(); }, total));
-    }
-
-    function runCycle() {
-      if (!coordinator.requestPlay(self)) return;
-      _doRunCycle();
-    }
-
     var self = {
-      _coordinatedStart: _doRunCycle,
-      play: function () { if (!playing && !finished) self.restart(); },
-      pause: function () { clearTimers(); playing = false; coordinator.release(self); },
-      restart: function () { clearTimers(); playing = false; finished = false; coordinator.release(self); ensureMount(); root.classList.remove('stage-fade'); if (ctx && ctx.reset) ctx.reset(); if (reduce) return seekToEnd(); if (coordinator.requestPlay(self)) _doRunCycle(); },
-      reset: function () { clearTimers(); playing = false; finished = false; if (ctx && ctx.reset) ctx.reset(); },
-      seekToEnd: function () {
-        ensureMount(); clearTimers(); playing = false; finished = true;
+      region: opts.region || root,
+      isFinished: function () { return finished; },
+      isPlaying: function () { return playing; },
+      start: function () {
+        ensureMount();
+        if (playing) return;
+        clearTimers();
         if (ctx.reset) ctx.reset();
-        scenario.steps.forEach(function (s) { s.run(ctx); });
-        refreshIcons(); opts.onDone && opts.onDone();
+        finished = false;
+        if (reduce) {                       // no motion → render the final frame at once
+          scenario.steps.forEach(function (s) { s.run(ctx); });
+          refreshIcons(); finished = true; opts.onDone && opts.onDone();
+          return;
+        }
+        playing = true;
+        scenario.steps.forEach(function (s) { timers.push(setTimeout(function () { s.run(ctx); refreshIcons(); }, s.at)); });
+        var total = (scenario.duration || lastAt()) + 80;
+        timers.push(setTimeout(function () { playing = false; finished = true; opts.onDone && opts.onDone(); }, total));
       },
-      get done() { return finished; },
+      pause: function () { clearTimers(); playing = false; },
+      reset: function () { clearTimers(); playing = false; finished = false; if (ctx && ctx.reset) ctx.reset(); },
     };
 
-    function play() { if (!playing && !finished) self.restart(); }
-    function pause() { self.pause(); }
-    function reset() { self.reset(); }
-
-    function inView() {
-      var r = root.getBoundingClientRect();
-      var h = window.innerHeight || document.documentElement.clientHeight;
-      return r.top < h * 0.8 && r.bottom > h * 0.2;
-    }
-    function fullyOut() {
-      var r = root.getBoundingClientRect();
-      var h = window.innerHeight || document.documentElement.clientHeight;
-      return r.bottom <= 0 || r.top >= h;
-    }
-    function check() {
-      if (!onscreen && inView()) { onscreen = true; play(); }
-      else if (onscreen && fullyOut()) { onscreen = false; pause(); reset(); }
-    }
-
     if (opts.eager !== false) ensureMount();
-    if (opts.autoplayOnVisible !== false) {
-      var raf2 = 0;
-      var onScroll2 = function () { if (raf2) return; raf2 = requestAnimationFrame(function () { raf2 = 0; check(); }); };
-      window.addEventListener('scroll', onScroll2, { passive: true });
-      window.addEventListener('resize', onScroll2, { passive: true });
-      requestAnimationFrame(check);
-      setTimeout(check, 400);
-      window.addEventListener('load', function () { setTimeout(check, 60); });
-    }
+    if (opts.autoRegister !== false) Director.register(self);
     return self;
   }
 
@@ -168,7 +172,7 @@
       const row = el('div', 'code__line');
       row.innerHTML = `<span class="ln">${i + 1}</span><span class="src"></span>`;
       wrap.appendChild(row);
-      return { row, src: row.querySelector('.src'), full: ln, glowable: /assert|expect|toHave|discount|coupon/i.test(ln) };
+      return { row, src: row.querySelector('.src'), full: ln };
     });
     return {
       el: wrap,
@@ -192,11 +196,11 @@
     // Stash string literals FIRST so the keyword/fn passes can't match (and
     // break) the quotes in the class attributes they inject. Restore last.
     const strings = [];
-    s = s.replace(/('[^']*'|"[^"]*"|`[^`]*`)/g, (m) => { strings.push(m); return ' ' + (strings.length - 1) + ' '; });
+    s = s.replace(/('[^']*'|"[^"]*"|`[^`]*`)/g, (m) => { strings.push(m); return '\x00' + (strings.length - 1) + '\x00'; });
     s = s
       .replace(/\b(await|const|async|import|from|export)\b/g, '<span class="code__kw">$1</span>')
       .replace(/\b(test|expect|click|fill|goto|locator|getByTestId|toBeVisible|toHaveText)\b/g, '<span class="code__fn">$1</span>');
-    return s.replace(/ (\d+) /g, (_, i) => '<span class="code__str">' + strings[+i] + '</span>');
+    return s.replace(/\x00(\d+)\x00/g, (_, i) => '<span class="code__str">' + strings[+i] + '</span>');
   }
 
   /* ── ReviewVerdict ────────────────────────────────────────────────────── */
@@ -220,7 +224,7 @@
   /* ── HumanError callout ───────────────────────────────────────────────── */
   function HumanError() {
     const w = el('div', 'humanerr');
-    w.innerHTML = `<div class="humanerr__label">${window.t('d2.tag') ? 'plain language' : 'plain language'}</div><div class="humanerr__text"></div>`;
+    w.innerHTML = `<div class="humanerr__label">${window.t('d2.plain')}</div><div class="humanerr__text"></div>`;
     return { el: w, show(text) { w.querySelector('.humanerr__text').textContent = text; w.classList.add('show'); }, reset() { w.classList.remove('show'); } };
   }
 
@@ -376,7 +380,7 @@
     });
     return {
       el: svg,
-      pulse(id) { const g = nodeEls[id]; if (!g) return; g.classList.add('changed'); const c = g.querySelector('circle:not(.gnode-halo)'); if (c && c.animate) c.animate([{ r: c.getAttribute('r') }, { r: (+c.getAttribute('r') + 7) }, { r: c.getAttribute('r') }], { duration: 800, easing: 'ease-out' }); setTimeout(() => g.classList.remove('changed'), 800); },
+      pulse(id) { const g = nodeEls[id]; if (!g) return; g.classList.add('changed'); const c = g.querySelector('circle:not(.gnode-halo)'); if (c && c.animate) c.animate([{ r: c.getAttribute('r') }, { r: (+c.getAttribute('r') + 7) }, { r: c.getAttribute('r') }], { duration: 550, easing: 'ease-out' }); setTimeout(() => g.classList.remove('changed'), 550); },
       litNode(id) { nodeEls[id] && nodeEls[id].classList.add('lit'); },
       litEdge(from, to) { const e = edgeEls[from + '>' + to]; e && e.classList.add('lit'); const l = labelEls[from + '>' + to]; l && l.classList.add('show'); },
       reset() { Object.values(nodeEls).forEach((g) => g.classList.remove('lit', 'changed')); Object.values(edgeEls).forEach((e) => e.classList.remove('lit')); Object.values(labelEls).forEach((l) => l.classList.remove('show')); },

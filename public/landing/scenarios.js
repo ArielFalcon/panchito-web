@@ -33,53 +33,107 @@
     ],
   };
   function demo1() {
-    var stageEnds = { classify: 4300, generate: 6300, review: 7450, execute: 9000 };
+    // Each stage is an animated segment over the graph/plan. The pipeline rail
+    // doubles as a stepper: clicking a stage replays prior state instantly, then
+    // animates ONLY that stage (no auto-advance), without breaking the graph.
+    // Graph beats are quick; the plan text below appears more slowly.
+    const STAGES = ['classify', 'generate', 'review', 'execute'];
+    const SEG = {
+      classify: { dur: 2400, beats: [
+        { dt: 0,    fn: (c) => { c.pulse('ds'); c.graph.litNode('ds'); } },
+        { dt: 320,  fn: (c) => c.graph.litEdge('ds', 'dc') },
+        { dt: 600,  fn: (c) => { c.graph.litNode('dc'); c.pulse('dc'); } },
+        { dt: 900,  fn: (c) => c.graph.litEdge('dc', 'cc') },
+        { dt: 1180, fn: (c) => { c.graph.litNode('cc'); c.pulse('cc'); } },
+        { dt: 1460, fn: (c) => c.graph.litEdge('cc', 'ui') },
+        { dt: 1740, fn: (c) => { c.graph.litNode('ui'); c.pulse('ui'); } },
+        { dt: 2060, fn: (c) => { c.graph.litEdge('ui', 'cart'); c.graph.litEdge('ds', 'pg'); } },
+        { dt: 2400, fn: (c) => { c.graph.litNode('cart'); c.graph.litNode('pg'); c.pulse('cart'); c.pulse('pg'); } },
+      ] },
+      generate: { dur: 1500, beats: [
+        { dt: 0,    fn: (c) => { c.plan.setTitle(t('d1.plantitle')); c.plan.add(t('d1.plan1')); } },
+        { dt: 750,  fn: (c) => c.plan.add(t('d1.plan2')) },
+        { dt: 1500, fn: (c) => c.plan.add(t('d1.plan3')) },
+      ] },
+      review: { dur: 1500, beats: [
+        { dt: 0,    fn: (c) => c.plan.addFeedback(0, t('d1.rev1')) },
+        { dt: 750,  fn: (c) => c.plan.addFeedback(1, t('d1.rev2')) },
+        { dt: 1500, fn: (c) => c.plan.addFeedback(2, t('d1.rev3')) },
+      ] },
+      execute: { dur: 1500, beats: [
+        { dt: 0,    fn: (c) => c.plan.setVerdict(0, true, t('d1.ex1')) },
+        { dt: 750,  fn: (c) => c.plan.setVerdict(1, false, t('d1.ex2')) },
+        { dt: 1500, fn: (c) => c.plan.setVerdict(2, true, t('d1.ex3')) },
+      ] },
+    };
+    const GAP = 350;
+    const starts = {}; let tcur = 300;
+    STAGES.forEach((n) => { starts[n] = tcur; tcur += SEG[n].dur + GAP; });
+
+    // auto-play timeline (paused the moment the user steps in manually)
+    const steps = [];
+    STAGES.forEach((name) => {
+      const s = starts[name], seg = SEG[name];
+      steps.push({ at: s, run: (c) => { if (c._interactive) return; c.rail.set(name, 'active'); } });
+      seg.beats.forEach((b) => steps.push({ at: s + b.dt, run: (c) => { if (c._interactive) return; b.fn(c); } }));
+      steps.push({ at: s + seg.dur + 140, run: (c) => { if (c._interactive) return; c.rail.set(name, 'done'); } });
+    });
+
     return {
-      mount(root) {
-        var wrap = el('div', 'stage-surface');
-        var graph = Graph(GRAPH_MODEL);
-        var rail = Rail(['classify', 'generate', 'review', 'execute']);
-        var plan = Plan(t('d1.plantitle'));
+      mount(root, player) {
+        const wrap = el('div', 'stage-surface');
+        const graph = Graph(GRAPH_MODEL);
+        const rail = Rail(STAGES);
+        const plan = Plan(t('d1.plantitle'));
         wrap.appendChild(graph.el); wrap.appendChild(rail.el); wrap.appendChild(plan.el);
         root.appendChild(wrap);
-        var self = { graph: graph, rail: rail, plan: plan, _playUpTo: undefined, reset: function () { graph.reset(); rail.reset(); plan.reset(); plan.setTitle(t('d1.plantitle')); self._playUpTo = undefined; } };
-        // interactive rail — clicking a stage plays up to that stage
-        var coord = window.PlayerCoordinator;
-        rail.el.querySelectorAll('.rail__stage').forEach(function (s, i) {
-          var name = ['classify', 'generate', 'review', 'execute'][i];
-          s.style.cursor = 'pointer';
-          s.addEventListener('click', function () {
-            coord.releaseAll();
-            self.reset();
-            self._playUpTo = stageEnds[name] || 9000;
-            // re-mount returns self; the player will call _coordinatedStart
-          });
+
+        let locals = [];
+        const clearLocals = () => { locals.forEach(clearTimeout); locals = []; };
+
+        const ctx = {
+          graph, rail, plan, _interactive: false, _seeking: false,
+          pulse(id) { if (ctx._seeking) return; graph.pulse(id); },
+          reset() {
+            clearLocals();
+            ctx._interactive = false; ctx._seeking = false;
+            graph.reset(); rail.reset(); plan.reset(); plan.setTitle(t('d1.plantitle'));
+          },
+          playStage(name) {
+            ctx.reset();
+            ctx._interactive = true;          // take over from the auto timeline
+            ctx._seeking = true;              // seed prior stages with no flourish
+            for (let i = 0; i < STAGES.length && STAGES[i] !== name; i++) {
+              SEG[STAGES[i]].beats.forEach((b) => b.fn(ctx));
+              rail.set(STAGES[i], 'done');
+            }
+            ctx._seeking = false;
+            rail.set(name, 'active');
+            SEG[name].beats.forEach((b) => locals.push(setTimeout(() => { b.fn(ctx); refreshIcons(); }, b.dt)));
+            locals.push(setTimeout(() => rail.set(name, 'done'), SEG[name].dur + 180));
+          },
+        };
+
+        // rail = interactive stepper
+        rail.el.querySelectorAll('.rail__stage').forEach((s, i) => {
+          const name = STAGES[i];
+          s.classList.add('rail__stage--clickable');
+          s.setAttribute('role', 'button');
+          s.setAttribute('tabindex', '0');
+          s.setAttribute('aria-label', 'play stage ' + name);
+          const go = () => {
+            const D = window.AnimationDirector;
+            if (D && player && D.active !== player) { D._deactivate(); D.active = player; }
+            ctx.playStage(name);
+          };
+          s.addEventListener('click', go);
+          s.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } });
         });
-        return self;
+
+        return ctx;
       },
-      duration: 9000,
-      steps: [
-        { at: 300, run: (c) => { c.rail.set('classify', 'active'); c.graph.pulse('ds'); c.graph.litNode('ds'); } },
-        { at: 1100, run: (c) => c.graph.litEdge('ds', 'dc') },
-        { at: 1550, run: (c) => { c.graph.litNode('dc'); c.graph.pulse('dc'); } },
-        { at: 2100, run: (c) => c.graph.litEdge('dc', 'cc') },
-        { at: 2550, run: (c) => { c.graph.litNode('cc'); c.graph.pulse('cc'); } },
-        { at: 3100, run: (c) => c.graph.litEdge('cc', 'ui') },
-        { at: 3550, run: (c) => { c.graph.litNode('ui'); c.graph.pulse('ui'); } },
-        { at: 4050, run: (c) => { c.graph.litEdge('ui', 'cart'); c.graph.litEdge('ds', 'pg'); } },
-        { at: 4450, run: (c) => { c.graph.litNode('cart'); c.graph.litNode('pg'); c.graph.pulse('cart'); c.graph.pulse('pg'); c.rail.set('classify', 'done'); c.rail.set('generate', 'active'); } },
-        { at: 5000, run: (c) => { c.plan.setTitle(t('d1.plantitle')); c.plan.add(t('d1.plan1')); } },
-        { at: 5550, run: (c) => c.plan.add(t('d1.plan2')) },
-        { at: 6100, run: (c) => { c.plan.add(t('d1.plan3')); c.rail.set('generate', 'done'); c.rail.set('review', 'active'); } },
-        { at: 6400, run: (c) => c.plan.addFeedback(0, t('d1.rev1')) },
-        { at: 6650, run: (c) => c.plan.addFeedback(1, t('d1.rev2')) },
-        { at: 6900, run: (c) => c.plan.addFeedback(2, t('d1.rev3')) },
-        { at: 7300, run: (c) => { c.rail.set('review', 'done'); c.rail.set('execute', 'active'); } },
-        { at: 7550, run: (c) => c.plan.setVerdict(0, true, t('d1.ex1')) },
-        { at: 7950, run: (c) => c.plan.setVerdict(1, false, t('d1.ex2')) },
-        { at: 8350, run: (c) => c.plan.setVerdict(2, true, t('d1.ex3')) },
-        { at: 8900, run: (c) => c.rail.set('execute', 'done') },
-      ],
+      duration: tcur,
+      steps,
     };
   }
 
@@ -96,11 +150,9 @@
     "});",
   ];
   function demo2() {
-    function growStage(stage) { requestAnimationFrame(() => { stage.style.height = stage.scrollHeight + 'px'; }); }
     return {
       mount(root) {
         const wrap = el('div', 'stage-surface');
-        wrap.style.overflow = 'hidden';
         const rail = Rail();
         const diff = CodeDiff(SPEC);
         const verdict = Verdict();
@@ -109,33 +161,29 @@
         const gh = GHCard();
         [rail.el, diff.el, verdict.el, term.el, human.el, gh.el].forEach((e) => wrap.appendChild(e));
         root.appendChild(wrap);
-        requestAnimationFrame(() => { wrap.style.height = wrap.scrollHeight + 'px'; });
-        return { rail, diff, verdict, term, human, gh, wrap, reset() { rail.reset(); diff.reset(); verdict.reset(); term.reset(); human.reset(); gh.reset(); wrap.style.height = 'auto'; } };
+        return { rail, diff, verdict, term, human, gh, reset() { rail.reset(); diff.reset(); verdict.reset(); term.reset(); human.reset(); gh.reset(); } };
       },
       duration: 7400,
       steps: [
         { at: 250, run: (c) => { c.rail.set('gate', 'done'); c.rail.set('classify', 'active'); } },
-        { at: 750, run: (c) => { c.rail.set('classify', 'done'); c.rail.set('generate', 'active'); c.diff.typeAll(() => { growStage(c.wrap); }); } },
-        { at: 2050, run: (c) => { c.rail.set('generate', 'done'); c.rail.set('review', 'active'); c.verdict.show(false, t('d2.rej')); growStage(c.wrap); } },
-        { at: 2950, run: (c) => { c.verdict.show(true, t('d2.appr')); growStage(c.wrap); } },
-        { at: 3550, run: (c) => { c.rail.set('review', 'done'); c.rail.set('coverage', 'active'); c.diff.glow([4, 5, 6, 7, 8]); c.term.line('›', t('d2.cov'), 'is-pass'); growStage(c.wrap); } },
-        { at: 4200, run: (c) => { c.rail.set('coverage', 'done'); c.rail.set('execute', 'active'); c.term.line('$', 'npx playwright test --grep coupon'); growStage(c.wrap); } },
-        { at: 4700, run: (c) => { c.term.line('›', 'running against dev.shop.app', 'is-mut'); growStage(c.wrap); } },
+        { at: 750, run: (c) => { c.rail.set('classify', 'done'); c.rail.set('generate', 'active'); c.diff.typeAll(); } },
+        { at: 2050, run: (c) => { c.rail.set('generate', 'done'); c.rail.set('review', 'active'); c.verdict.show(false, t('d2.rej')); } },
+        { at: 2950, run: (c) => c.verdict.show(true, t('d2.appr')) },
+        { at: 3550, run: (c) => { c.rail.set('review', 'done'); c.rail.set('coverage', 'active'); c.diff.glow([4, 5, 6, 7, 8]); c.term.line('›', t('d2.cov'), 'is-pass'); } },
+        { at: 4200, run: (c) => { c.rail.set('coverage', 'done'); c.rail.set('execute', 'active'); c.term.line('$', 'npx playwright test --grep coupon'); } },
+        { at: 4700, run: (c) => c.term.line('›', 'running against dev.shop.app', 'is-mut') },
         { at: 5400, run: (c) => {
             if (window.LandingState.d2ending === 'pass') c.term.line('✓', '1 passed · 12.4s', 'is-pass');
             else c.term.line('✗', '1 failed · total was "$50.00", expected "$45.00"', 'is-fail');
-            growStage(c.wrap);
           } },
         { at: 6100, run: (c) => {
             if (window.LandingState.d2ending === 'pass') { c.rail.set('execute', 'done'); c.rail.set('decide', 'active'); }
             else { c.rail.set('execute', 'fail'); c.rail.set('decide', 'active'); c.human.show(t('d2.err')); }
-            growStage(c.wrap);
           } },
         { at: 6800, run: (c) => {
             c.rail.set('decide', 'done');
             if (window.LandingState.d2ending === 'pass') c.gh.show('pr', t('d2.prtitle'), { branch: 'e2e-coupon', base: 'main' });
             else c.gh.show('issue', t('d2.issuetitle'), { sub: 'sanitized logs attached' });
-            growStage(c.wrap);
           } },
       ],
     };
@@ -257,38 +305,40 @@
       const scope = opts.full ? 'full' : ('last ' + opts.depth + ' commits');
       return {
         mount(root) {
-          const wrap = el('div');
-          const term = Terminal(repo + ' · dev');
-          const gh1 = GHCard(), gh2 = GHCard();
-          [term.el, gh1.el, gh2.el].forEach((e) => wrap.appendChild(e));
+          var wrap = el('div');
+          var term = Terminal(repo + ' · dev');
+          var gh1 = GHCard(), gh2 = GHCard();
+          var dashLink = el('a', 'engine__dash');
+          dashLink.href = '/dashboard?run=r-live';
+          dashLink.innerHTML = window.PUI.ic('external-link') + '<span>View full result in console →</span>';
+          [term.el, gh1.el, gh2.el, dashLink].forEach(function (e) { wrap.appendChild(e); });
           root.innerHTML = ''; root.appendChild(wrap);
           rail.reset();
-          return { term, gh1, gh2, reset() { term.reset(); gh1.reset(); gh2.reset(); rail.reset(); } };
+          return { term: term, gh1: gh1, gh2: gh2, dashLink: dashLink, reset: function () { term.reset(); gh1.reset(); gh2.reset(); rail.reset(); dashLink.classList.remove('show'); } };
         },
-        duration: 6400,
+        duration: 6800,
         steps: [
-          { at: 100, run: (c) => { rail.set('gate', 'active'); c.term.line('$', `panchito qa ${repo} · ${scope}`); } },
-          { at: 600, run: (c) => { rail.set('gate', 'done'); rail.set('classify', 'active'); c.term.line('›', opts.full ? 'auditing whole repo · 6 flows' : `analyzing ${opts.depth} commits · 2 with logic changes`, 'is-info'); } },
-          { at: 1500, run: (c) => { rail.set('classify', 'done'); rail.set('generate', 'active'); c.term.line('›', 'blast radius · 3 routes · 1 cross-repo (payments→checkout)', 'is-mut'); } },
-          { at: 2300, run: (c) => { c.term.line('›', 'generate · wrote 3 specs'); rail.set('generate', 'done'); rail.set('review', 'active'); } },
-          { at: 3000, run: (c) => { c.term.line('›', 'qa-reviewer · approved 3/3', 'is-pass'); rail.set('review', 'done'); rail.set('coverage', 'active'); } },
-          { at: 3600, run: (c) => { c.term.line('›', 'change-coverage · 11/11 changed lines', 'is-pass'); rail.set('coverage', 'done'); rail.set('execute', 'active'); } },
-          { at: 4200, run: (c) => c.term.line('›', `running against dev · ${repo.split('/')[1] || 'app'}`, 'is-mut') },
-          { at: 4900, run: (c) => c.term.line('~', '3 specs · 2 passed · 1 failed', 'is-warn') },
-          { at: 5400, run: (c) => { rail.set('execute', 'done'); rail.set('decide', 'active'); } },
-          { at: 5800, run: (c) => c.gh1.show('pr', 'Add E2E: 2 green flows', { branch: 'qa/e2e-batch', base: 'main' }) },
-          { at: 6100, run: (c) => { c.gh2.show('issue', 'Refund flow: total mismatch on partial refund'); rail.set('decide', 'done'); } },
+          { at: 100, run: function (c) { rail.set('gate', 'active'); c.term.line('$', 'panchito qa ' + repo + ' · ' + scope); } },
+          { at: 600, run: function (c) { rail.set('gate', 'done'); rail.set('classify', 'active'); c.term.line('›', opts.full ? 'auditing whole repo · 6 flows' : 'analyzing ' + opts.depth + ' commits · 2 with logic changes', 'is-info'); } },
+          { at: 1500, run: function (c) { rail.set('classify', 'done'); rail.set('generate', 'active'); c.term.line('›', 'blast radius · 3 routes · 1 cross-repo (payments→checkout)', 'is-mut'); } },
+          { at: 2300, run: function (c) { c.term.line('›', 'generate · wrote 3 specs'); rail.set('generate', 'done'); rail.set('review', 'active'); } },
+          { at: 3000, run: function (c) { c.term.line('›', 'qa-reviewer · approved 3/3', 'is-pass'); rail.set('review', 'done'); rail.set('coverage', 'active'); } },
+          { at: 3600, run: function (c) { c.term.line('›', 'change-coverage · 11/11 changed lines', 'is-pass'); rail.set('coverage', 'done'); rail.set('execute', 'active'); } },
+          { at: 4200, run: function (c) { c.term.line('›', 'running against dev · ' + (repo.split('/')[1] || 'app'), 'is-mut'); } },
+          { at: 4900, run: function (c) { c.term.line('~', '3 specs · 2 passed · 1 failed', 'is-warn'); } },
+          { at: 5400, run: function (c) { rail.set('execute', 'done'); rail.set('decide', 'active'); } },
+          { at: 5800, run: function (c) { c.gh1.show('pr', 'Add E2E: 2 green flows', { branch: 'qa/e2e-batch', base: 'main' }); } },
+          { at: 6100, run: function (c) { c.gh2.show('issue', 'Refund flow: total mismatch on partial refund'); rail.set('decide', 'done'); } },
+          { at: 6500, run: function (c) { c.dashLink.classList.add('show'); } },
         ],
       };
     };
   }
 
-  /* ── HERO micro-demo · viewport-aware, coordinator-compatible ── */
-  function heroLoop(body) {
+  /* ── HERO micro-demo · a director-managed player like the demos ── */
+  function heroLoop(body, opts) {
+    opts = opts || {};
     var reduce = window.PUI.reduce;
-    var coord = window.PlayerCoordinator;
-    body.style.overflow = 'hidden';
-    body.style.transition = 'height 0.5s var(--ease)';
 
     function lineEl(g, txt, cls) {
       var l = el('div', 'term__line' + (cls ? ' ' + cls : ''));
@@ -302,20 +352,20 @@
       card.innerHTML = '<div class="ghcard__head">' + window.PUI.ic('git-pull-request', 'class="ghcard__icon"') + '<span class="ghcard__title">' + t('hero.pr') + '</span></div><div class="ghcard__meta"><span class="ghcard__automerge">' + window.PUI.ic('check', 'style="width:13px;height:13px"') + ' ' + t('hero.prsub') + '</span></div>';
       return card;
     }
-    function grow() { body.style.height = body.scrollHeight + 'px'; }
     function append(node, reveal) {
-      body.appendChild(node); grow();
+      body.appendChild(node);
       if (reveal) setTimeout(function () { node.classList.add(reveal); }, 30);
       window.PUI.refreshIcons();
     }
 
     var timers = [];
     var playing = false;
+    var finished = false;
     function clearTimers() { timers.forEach(clearTimeout); timers = []; playing = false; }
     var at = function (ms, fn) { timers.push(setTimeout(fn, ms)); };
 
     function build(animated) {
-      body.innerHTML = ''; body.style.height = 'auto';
+      body.innerHTML = '';
       append(lineEl('$', t('hero.cmd'), 'is-mut'), animated ? 'in' : null);
       if (!animated) {
         append(lineEl('›', t('hero.classify'), 'is-info'), null);
@@ -325,7 +375,6 @@
         append(lineEl('', t('hero.verdict'), 'is-fail'), null);
         var c = prCard(); c.classList.add('show'); append(c, null);
         body.querySelectorAll('.term__line').forEach(function (l) { l.classList.add('in'); });
-        body.style.height = 'auto';
         return;
       }
       playing = true;
@@ -335,41 +384,19 @@
       at(4000, function () { append(lineEl('✗', t('hero.execute'), 'is-fail'), 'in'); });
       at(5050, function () { append(lineEl('', t('hero.verdict'), 'is-fail'), 'in'); });
       at(6100, function () { append(prCard(), 'show'); });
-      at(8600, function () { playing = false; coord.release(player); });
+      at(8600, function () { playing = false; finished = true; });
     }
 
-    function start() { clearTimers(); build(true); }
-    function pause() { clearTimers(); body.innerHTML = ''; body.style.height = 'auto'; body.style.opacity = '1'; }
-    function reset() { pause(); }
-
-    if (reduce) { build(false); return { start: function(){}, pause: function(){} }; }
-
-    window.addEventListener('langchange', function () { clearTimers(); build(true); });
-
-    var onscreen = false;
-    function inView() {
-      var r = body.getBoundingClientRect();
-      var h = window.innerHeight || document.documentElement.clientHeight;
-      return r.top < h * 0.8 && r.bottom > h * 0.2;
+    function start() {
+      clearTimers(); finished = false;
+      if (reduce) { build(false); finished = true; return; }
+      build(true);
     }
-    function fullyOut() {
-      var r = body.getBoundingClientRect();
-      var h = window.innerHeight || document.documentElement.clientHeight;
-      return r.bottom <= 0 || r.top >= h;
-    }
-    var raf = 0;
-    function check() {
-      if (!onscreen && inView()) { onscreen = true; if (!playing && coord.requestPlay(player)) start(); }
-      else if (onscreen && fullyOut()) { onscreen = false; pause(); coord.release(player); }
-    }
-    var onScroll = function () { if (raf) return; raf = requestAnimationFrame(function () { raf = 0; check(); }); };
-    window.addEventListener('scroll', onScroll, { passive: true });
-    window.addEventListener('resize', onScroll, { passive: true });
-    requestAnimationFrame(check);
-    setTimeout(check, 400);
-    window.addEventListener('load', function () { setTimeout(check, 60); });
+    function pause() { clearTimers(); }
+    function reset() { clearTimers(); body.innerHTML = ''; body.style.opacity = '1'; finished = false; }
 
-    var player = { start: start, pause: pause, reset: reset };
+    var player = { region: opts.region || body, start: start, pause: pause, reset: reset, isFinished: function () { return finished; } };
+    if (opts.autoRegister !== false) window.AnimationDirector.register(player);
     return player;
   }
 
