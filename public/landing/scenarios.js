@@ -323,50 +323,6 @@
     window.addEventListener('langchange', () => { clear(); build(true); });
     build(true);
   }
-    function prCard() {
-      const card = el('div', 'ghcard ghcard--pr');
-      card.style.margin = '12px 0 0';
-      card.innerHTML = `<div class="ghcard__head">${window.PUI.ic('git-pull-request', 'class="ghcard__icon"')}<span class="ghcard__title">${t('hero.pr')}</span></div><div class="ghcard__meta"><span class="ghcard__automerge">${window.PUI.ic('check', 'style="width:13px;height:13px"')} ${t('hero.prsub')}</span></div>`;
-      return card;
-    }
-    // grow the container to fit its content with a smooth transition
-    function grow() { body.style.height = body.scrollHeight + 'px'; }
-    function append(node, reveal) {
-      body.appendChild(node); grow();
-      if (reveal) setTimeout(() => node.classList.add(reveal), 30);
-      window.PUI.refreshIcons();
-    }
-
-    let timers = [];
-    function clear() { timers.forEach(clearTimeout); timers = []; }
-    const at = (ms, fn) => timers.push(setTimeout(fn, ms));
-
-    function build(animated) {
-      body.innerHTML = ''; body.style.height = 'auto';
-      append(lineEl('›', t('hero.commit'), 'is-mut'), animated ? 'in' : null);
-      if (!animated) {
-        append(lineEl('›', t('hero.reading'), 'is-info'), null);
-        append(lineEl('✓', t('hero.writing'), 'is-pass'), null);
-        const c = prCard(); c.classList.add('show'); append(c, null);
-        body.querySelectorAll('.term__line').forEach((l) => l.classList.add('in'));
-        body.style.height = 'auto';
-        return;
-      }
-      at(950,  () => append(lineEl('›', t('hero.reading'), 'is-info'), 'in'));
-      at(1900, () => append(lineEl('✓', t('hero.writing'), 'is-pass'), 'in'));
-      at(2750, () => append(prCard(), 'show'));
-      at(5200, () => {            // hold, fade the card out, loop
-        body.style.transition = 'height 0.5s var(--ease), opacity 0.4s var(--ease)';
-        body.style.opacity = '0';
-        at(450, () => { body.style.opacity = '1'; build(true); });
-      });
-    }
-
-    if (reduce) { build(false); return; }
-    // rebuild copy on language switch
-    window.addEventListener('langchange', () => { clear(); build(true); });
-    build(true);
-  }
 
   /* ── Comparison data ───────────────────────────────────────────────── */
   const CK = { t: 'ck' }, NO = { t: 'no' };
