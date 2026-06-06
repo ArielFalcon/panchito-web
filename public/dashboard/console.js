@@ -180,9 +180,10 @@
       <div class="dash">
         <aside class="dash__side">
           <a class="side__brand" href="/"><img src="/assets/panchito-mark.svg" alt=""><span class="side__word">Panchito</span></a>
-          <nav class="side__nav">
+          <nav class="side__nav" id="side-nav">
             ${NAV.map((n) => `<button class="side__link${!openRun && n.id === state.section ? ' is-active' : ''}" data-action="nav" data-id="${n.id}">${ic(n.icon)}${n.label}</button>`).join('')}
           </nav>
+          <button class="side__burger" id="side-burger" aria-label="Menu">${ic('menu')}</button>
           <div class="side__watch">
             <div class="side__watch-h">Watching ${D.apps.length}</div>
             ${D.apps.map((a) => `<div class="side__app"><span class="dot${a.shadow ? ' shadow' : ''}"></span><span class="name">${esc(a.name)}</span>${a.shadow ? '<span class="tag">shadow</span>' : ''}</div>`).join('')}
@@ -228,9 +229,22 @@
   }
 
   root.addEventListener('click', (e) => {
-    const el = e.target.closest('[data-action]');
-    if (!el) return;
-    const action = el.dataset.action, id = el.dataset.id;
+    // hamburger toggle
+    if (e.target.closest('#side-burger')) {
+      var nav = document.getElementById('side-nav');
+      if (nav) nav.classList.toggle('is-open');
+      return;
+    }
+    var el = e.target.closest('[data-action]');
+    if (!el) {
+      var nav2 = document.getElementById('side-nav');
+      var burger = document.getElementById('side-burger');
+      if (nav2 && nav2.classList.contains('is-open') && burger && !burger.contains(e.target)) {
+        nav2.classList.remove('is-open');
+      }
+      return;
+    }
+    var action = el.dataset.action, id = el.dataset.id;
     if (action === 'open') openRun(id);
     else if (action === 'nav') go(id);
     else if (action === 'back') back();

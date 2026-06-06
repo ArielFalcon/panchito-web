@@ -201,6 +201,12 @@ body { margin: 0; background: var(--surface-page); color: var(--text-body); }
   font-family: var(--font-mono); font-size: 12.5px; z-index: 60; }
 .toast svg { width: 15px; height: 15px; color: #7fcf9f; }
 
+/* ── hamburger (mobile nav toggle) ──────────────────────────────────────── */
+.side__burger { display: none; border: 0; background: transparent; cursor: pointer;
+  color: var(--text-muted); padding: 6px; border-radius: var(--radius-sm); }
+.side__burger:hover { color: var(--text-strong); background: var(--bone-100); }
+.side__burger svg { width: 20px; height: 20px; }
+
 /* ═══ Responsive ═══════════════════════════════════════════════════════ */
 @media (max-width: 920px) {
   .stats { grid-template-columns: repeat(2, 1fr); }
@@ -208,14 +214,19 @@ body { margin: 0; background: var(--surface-page); color: var(--text-body); }
   .det__cols { grid-template-columns: 1fr; }
 }
 @media (max-width: 760px) {
-  /* sidebar becomes a top bar */
   .dash { flex-direction: column; }
   .dash__side { width: 100%; height: auto; position: static; flex-direction: row; align-items: center;
-    border-right: 0; border-bottom: var(--border-rule); overflow-x: auto; gap: 4px; padding: 8px 12px; }
+    border-right: 0; border-bottom: var(--border-rule); overflow: visible; gap: 4px; padding: 8px 12px; }
   .side__brand { padding: 6px 10px 6px 4px; border-bottom: 0; border-right: var(--border-rule); flex: none; }
   .side__word { font-size: 17px; }
-  .side__nav { flex-direction: row; padding: 0; gap: 4px; }
-  .side__link { padding: 8px 10px; white-space: nowrap; }
+  .side__burger { display: flex; margin-left: auto; flex: none; }
+  .side__nav { flex-direction: column; padding: 0; gap: 2px; position: absolute; top: 100%; left: 0; right: 0;
+    background: var(--surface-raised); border-bottom: var(--border-rule); z-index: 30;
+    max-height: 0; overflow: hidden; transition: max-height 0.3s var(--ease-out); }
+  .side__nav.is-open { max-height: 260px; box-shadow: var(--shadow-md); }
+  .side__nav .side__link { width: 100%; border-radius: 0; padding: 12px 20px; }
+  .side__nav .side__link:not(.is-active) { display: none; }
+  .side__nav.is-open .side__link { display: flex; }
   .side__watch { display: none; }
   .top { padding: 14px 18px; }
   .view, .view--detail { padding: 18px 18px 28px; }
