@@ -221,7 +221,7 @@ h2.section-title {
 .demo__text { position: sticky; top: calc(var(--nav-h) + 40px); }
 .demo__num { font-family: var(--font-mono); font-size: 12px; color: var(--muted-ink); letter-spacing: 0.1em; }
 .band--dark .demo__num { color: var(--muted); }
-.demo__sub { margin-top: 5px; }
+.demo__sub { margin-top: 12px; }
 .demo__caption { margin-top: 16px; font-family: var(--font-mono); font-size: 11.5px; line-height: 1.6;
   color: var(--muted-ink); padding-top: 14px; border-top: 1px solid var(--line-ink); }
 .band--dark .demo__caption { color: var(--muted); border-top-color: var(--line); }

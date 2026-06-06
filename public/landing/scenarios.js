@@ -57,6 +57,8 @@
         { at: 5000, run: (c) => { c.plan.setTitle(t('d1.plantitle')); c.plan.add(t('d1.plan1')); } },
         { at: 5550, run: (c) => c.plan.add(t('d1.plan2')) },
         { at: 6100, run: (c) => { c.plan.add(t('d1.plan3')); c.rail.set('generate', 'done'); c.rail.set('review', 'active'); } },
+        { at: 6600, run: (c) => { c.rail.set('review', 'done'); c.rail.set('execute', 'active'); } },
+        { at: 6950, run: (c) => c.rail.set('execute', 'done') },
       ],
     };
   }
@@ -74,7 +76,7 @@
     "});",
   ];
   function demo2() {
-    function growStage(stage) { stage.style.height = stage.scrollHeight + 'px'; }
+    function growStage(stage) { requestAnimationFrame(() => { stage.style.height = stage.scrollHeight + 'px'; }); }
     return {
       mount(root) {
         const wrap = el('div', 'stage-surface');
@@ -88,7 +90,7 @@
         [rail.el, diff.el, verdict.el, term.el, human.el, gh.el].forEach((e) => wrap.appendChild(e));
         root.appendChild(wrap);
         requestAnimationFrame(() => { wrap.style.height = wrap.scrollHeight + 'px'; });
-        return { rail, diff, verdict, term, human, gh, wrap, reset() { rail.reset(); diff.reset(); verdict.reset(); term.reset(); human.reset(); gh.reset(); } };
+        return { rail, diff, verdict, term, human, gh, wrap, reset() { rail.reset(); diff.reset(); verdict.reset(); term.reset(); human.reset(); gh.reset(); wrap.style.height = 'auto'; } };
       },
       duration: 7400,
       steps: [
@@ -261,7 +263,7 @@
     };
   }
 
-  /* ── HERO micro-demo · progressive terminal that grows smoothly ──────── */
+  /* ── HERO micro-demo · progressive terminal matching real TUI pipeline ── */
   function heroLoop(body) {
     const reduce = window.PUI.reduce;
     body.style.overflow = 'hidden';
@@ -273,6 +275,54 @@
       l.style.fontFamily = 'var(--font-mono)'; l.style.fontSize = '12px'; l.style.lineHeight = '1.9';
       return l;
     }
+    function prCard() {
+      const card = el('div', 'ghcard ghcard--pr');
+      card.style.margin = '12px 0 0';
+      card.innerHTML = `<div class="ghcard__head">${window.PUI.ic('git-pull-request', 'class="ghcard__icon"')}<span class="ghcard__title">${t('hero.pr')}</span></div><div class="ghcard__meta"><span class="ghcard__automerge">${window.PUI.ic('check', 'style="width:13px;height:13px"')} ${t('hero.prsub')}</span></div>`;
+      return card;
+    }
+    function grow() { body.style.height = body.scrollHeight + 'px'; }
+    function append(node, reveal) {
+      body.appendChild(node); grow();
+      if (reveal) setTimeout(() => node.classList.add(reveal), 30);
+      window.PUI.refreshIcons();
+    }
+
+    let timers = [];
+    function clear() { timers.forEach(clearTimeout); timers = []; }
+    const at = (ms, fn) => timers.push(setTimeout(fn, ms));
+
+    function build(animated) {
+      body.innerHTML = ''; body.style.height = 'auto';
+      append(lineEl('$', t('hero.cmd'), 'is-mut'), animated ? 'in' : null);
+      if (!animated) {
+        append(lineEl('›', t('hero.classify'), 'is-info'), null);
+        append(lineEl('›', t('hero.generate'), 'is-mut'), null);
+        append(lineEl('✓', t('hero.validate'), 'is-pass'), null);
+        append(lineEl('✗', t('hero.execute'), 'is-fail'), null);
+        append(lineEl('', t('hero.verdict'), 'is-fail'), null);
+        const c = prCard(); c.classList.add('show'); append(c, null);
+        body.querySelectorAll('.term__line').forEach((l) => l.classList.add('in'));
+        body.style.height = 'auto';
+        return;
+      }
+      at(950,  () => append(lineEl('›', t('hero.classify'), 'is-info'), 'in'));
+      at(1900, () => append(lineEl('›', t('hero.generate'), 'is-mut'), 'in'));
+      at(2950, () => append(lineEl('✓', t('hero.validate'), 'is-pass'), 'in'));
+      at(4000, () => append(lineEl('✗', t('hero.execute'), 'is-fail'), 'in'));
+      at(5050, () => append(lineEl('', t('hero.verdict'), 'is-fail'), 'in'));
+      at(6100, () => append(prCard(), 'show'));
+      at(8600, () => {
+        body.style.transition = 'height 0.5s var(--ease), opacity 0.4s var(--ease)';
+        body.style.opacity = '0';
+        at(450, () => { body.style.opacity = '1'; build(true); });
+      });
+    }
+
+    if (reduce) { build(false); return; }
+    window.addEventListener('langchange', () => { clear(); build(true); });
+    build(true);
+  }
     function prCard() {
       const card = el('div', 'ghcard ghcard--pr');
       card.style.margin = '12px 0 0';
