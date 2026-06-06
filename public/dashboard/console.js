@@ -27,7 +27,7 @@
   const VLABEL = { pass: 'pass', fail: 'fail', flaky: 'flaky', skipped: 'skipped', 'infra-error': 'infra' };
   const LOG_CLS = { '✓': 'ok', '✗': 'bad', '~': 'warn', '!': 'info' };
 
-  const state = { section: 'runs', runId: null, dialog: false, dialogApp: D.apps[0].name, dialogMode: 'diff', toast: null };
+  var state = { section: 'runs', runId: null, dialog: false, dialogApp: D.apps[0].name, dialogMode: 'diff', toast: null, onboardName: '', onboardRepo: '', onboardStack: '', onboardShadow: false };
   let toastTimer = 0;
 
   /* ── components ──────────────────────────────────────────────────────── */
@@ -113,7 +113,7 @@
           <div class="kv"><span class="k">onFailure</span><span class="v">github-issue</span></div></div>`,
         foot: `<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted)">${esc(a.repo)}</span><button class="dbtn dbtn--ghost dbtn--sm" data-action="trigger">Run</button></div>`,
       })).join('')}
-      <button class="app-onboard" data-action="trigger">${ic('plus')}<span class="lbl">onboard a repo</span><span class="sub">config/apps/&lt;name&gt;.yaml</span></button>
+      <button class="app-onboard" data-action="onboard">${ic('plus')}<span class="lbl">onboard a repo</span><span class="sub">config/apps/&lt;name&gt;.yaml</span></button>
     </div></div>`;
   }
 
@@ -147,23 +147,37 @@
   /* ── shell ───────────────────────────────────────────────────────────── */
   function dialog() {
     if (!state.dialog) return '';
-    const modes = ['diff', 'complete', 'exhaustive', 'manual'];
-    return `<div class="dialog-bg" data-action="dialog-bg">
-      <div class="dialog">
-        <div class="dialog__head"><div><span class="pa-eyebrow">manual trigger</span><h3 class="dialog__title">Run QA</h3></div>
-          <button class="dialog__x" data-action="dialog-close">${ic('x')}</button></div>
-        <div class="dialog__body">
-          <div style="display:flex;flex-direction:column;gap:6px"><span class="pa-eyebrow">app</span>
-            <div class="chipset">${D.apps.map((a) => `<button class="chip-opt${a.name === state.dialogApp ? ' is-on' : ''}" data-action="dialog-app" data-id="${esc(a.name)}">${esc(a.name)}</button>`).join('')}</div></div>
-          <div style="display:flex;flex-direction:column;gap:6px"><span class="pa-eyebrow">commit SHA</span>
-            <div class="dinput">${ic('git-commit-horizontal')}<input type="text" placeholder="HEAD" spellcheck="false"></div></div>
-          <div style="display:flex;flex-direction:column;gap:6px"><span class="pa-eyebrow">mode</span>
-            <div class="chipset">${modes.map((m) => `<button class="chip-opt mode${m === state.dialogMode ? ' is-on' : ''}" data-action="dialog-mode" data-id="${m}">${m}</button>`).join('')}</div></div>
-        </div>
-        <div class="dialog__foot"><button class="dbtn dbtn--ghost" data-action="dialog-close">Cancel</button>
-          <button class="dbtn dbtn--primary" data-action="dialog-submit">${ic('play')} Run ${esc(state.dialogApp)}</button></div>
-      </div>
-    </div>`;
+    var isOnboard = state.dialog === 'onboard';
+    var modes = ['diff', 'complete', 'exhaustive', 'manual'];
+    var body;
+    if (isOnboard) {
+      body = `<div style="display:flex;flex-direction:column;gap:6px"><span class="pa-eyebrow">app name</span>
+          <div class="dinput">${ic('box')}<input type="text" id="ob-name" value="${esc(state.onboardName)}" placeholder="my-app" spellcheck="false"></div></div>
+        <div style="display:flex;flex-direction:column;gap:6px"><span class="pa-eyebrow">repository</span>
+          <div class="dinput">${ic('github')}<input type="text" id="ob-repo" value="${esc(state.onboardRepo)}" placeholder="org/repo" spellcheck="false"></div></div>
+        <div style="display:flex;flex-direction:column;gap:6px"><span class="pa-eyebrow">stack</span>
+          <div class="dinput">${ic('layers')}<input type="text" id="ob-stack" value="${esc(state.onboardStack)}" placeholder="Astro · Vercel" spellcheck="false"></div></div>
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:8px 0">
+          <input type="checkbox" id="ob-shadow"${state.onboardShadow ? ' checked' : ''} style="accent-color:var(--ember-500);width:16px;height:16px">
+          <span class="pa-eyebrow" style="text-transform:none;letter-spacing:0">shadow mode — run pipeline without publishing PRs or Issues</span></label>`;
+    } else {
+      body = `<div style="display:flex;flex-direction:column;gap:6px"><span class="pa-eyebrow">app</span>
+          <div class="chipset">${D.apps.map(function (a) { return '<button class="chip-opt' + (a.name === state.dialogApp ? ' is-on' : '') + '" data-action="dialog-app" data-id="' + esc(a.name) + '">' + esc(a.name) + '</button>'; }).join('')}</div></div>
+        <div style="display:flex;flex-direction:column;gap:6px"><span class="pa-eyebrow">commit SHA</span>
+          <div class="dinput">${ic('git-commit-horizontal')}<input type="text" placeholder="HEAD" spellcheck="false"></div></div>
+        <div style="display:flex;flex-direction:column;gap:6px"><span class="pa-eyebrow">mode</span>
+          <div class="chipset">${modes.map(function (m) { return '<button class="chip-opt mode' + (m === state.dialogMode ? ' is-on' : '') + '" data-action="dialog-mode" data-id="' + m + '">' + m + '</button>'; }).join('')}</div></div>`;
+    }
+    return '<div class="dialog-bg" data-action="dialog-bg">'
+      + '<div class="dialog">'
+      + '<div class="dialog__head"><div><span class="pa-eyebrow">' + (isOnboard ? 'onboard app' : 'manual trigger') + '</span><h3 class="dialog__title">' + (isOnboard ? 'Register app' : 'Run QA') + '</h3></div>'
+      + '<button class="dialog__x" data-action="dialog-close">' + ic('x') + '</button></div>'
+      + '<div class="dialog__body">' + body + '</div>'
+      + '<div class="dialog__foot"><button class="dbtn dbtn--ghost" data-action="dialog-close">Cancel</button>'
+      + (isOnboard
+        ? '<button class="dbtn dbtn--primary" data-action="onboard-submit">' + ic('plus') + ' Register ' + esc(state.onboardName || 'app') + '</button>'
+        : '<button class="dbtn dbtn--primary" data-action="dialog-submit">' + ic('play') + ' Run ' + esc(state.dialogApp) + '</button>')
+      + '</div></div></div>';
   }
 
   function render() {
@@ -174,12 +188,15 @@
     else if (state.section === 'suite') main = suiteView();
     else if (state.section === 'memory') main = memoryView();
     else main = runsFeed();
-    const [title, sub] = openRun ? ['Run ' + openRun.id, 'pipeline · ' + openRun.app] : TITLES[state.section];
+    var [title, sub] = openRun ? ['Run ' + openRun.id, 'pipeline · ' + openRun.app] : TITLES[state.section];
+    var activeLabel = NAV.find(function (n) { return n.id === state.section; });
+    var activeText = activeLabel ? activeLabel.label : 'Runs';
 
     root.innerHTML = `
       <div class="dash">
         <aside class="dash__side">
           <a class="side__brand" href="/"><img src="/assets/panchito-mark.svg" alt=""><span class="side__word">Panchito</span></a>
+          <span class="side__mobile-pill">${ic(activeLabel ? activeLabel.icon : 'activity')}${activeText}</span>
           <nav class="side__nav" id="side-nav">
             ${NAV.map((n) => `<button class="side__link${!openRun && n.id === state.section ? ' is-active' : ''}" data-action="nav" data-id="${n.id}">${ic(n.icon)}${n.label}</button>`).join('')}
           </nav>
@@ -201,6 +218,12 @@
       ${dialog()}
       ${state.toast ? `<div class="toast">${ic('check')}${esc(state.toast)}</div>` : ''}`;
     refreshIcons();
+    // attach fresh burger handler (event delegation breaks after innerHTML swap)
+    var burger = document.getElementById('side-burger');
+    var nav = document.getElementById('side-nav');
+    if (burger && nav) {
+      burger.onclick = function (e) { e.stopPropagation(); nav.classList.toggle('is-open'); };
+    }
   }
 
   /* ── routing + events ────────────────────────────────────────────────── */
@@ -228,18 +251,11 @@
     toastTimer = setTimeout(() => { state.toast = null; render(); }, 2600);
   }
 
-  root.addEventListener('click', (e) => {
-    // hamburger toggle
-    if (e.target.closest('#side-burger')) {
-      var nav = document.getElementById('side-nav');
-      if (nav) nav.classList.toggle('is-open');
-      return;
-    }
+  root.addEventListener('click', function (e) {
     var el = e.target.closest('[data-action]');
     if (!el) {
       var nav2 = document.getElementById('side-nav');
-      var burger = document.getElementById('side-burger');
-      if (nav2 && nav2.classList.contains('is-open') && burger && !burger.contains(e.target)) {
+      if (nav2 && nav2.classList.contains('is-open')) {
         nav2.classList.remove('is-open');
       }
       return;
@@ -248,15 +264,25 @@
     if (action === 'open') openRun(id);
     else if (action === 'nav') go(id);
     else if (action === 'back') back();
-    else if (action === 'trigger') { state.dialog = true; render(); }
+    else if (action === 'trigger') { state.dialog = 'trigger'; render(); }
+    else if (action === 'onboard') { state.dialog = 'onboard'; state.onboardName = ''; state.onboardRepo = ''; state.onboardStack = ''; state.onboardShadow = false; render(); }
     else if (action === 'dialog-bg') { if (e.target.classList && e.target.classList.contains('dialog-bg')) { state.dialog = false; render(); } }
     else if (action === 'dialog-close') { state.dialog = false; render(); }
     else if (action === 'dialog-app') { state.dialogApp = id; render(); }
     else if (action === 'dialog-mode') { state.dialogMode = id; render(); }
-    else if (action === 'dialog-submit') { const a = state.dialogApp, m = state.dialogMode; state.dialog = false; showToast(`queued ${a} · ${m} mode`); }
+    else if (action === 'dialog-submit') { var a = state.dialogApp, m = state.dialogMode; state.dialog = false; showToast('queued ' + a + ' · ' + m + ' mode'); }
+    else if (action === 'onboard-submit') { var name = state.onboardName || 'new-app'; state.dialog = false; showToast('registered ' + name + ' · shadow=' + (state.onboardShadow ? 'yes' : 'no')); }
   });
   window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && state.dialog) { state.dialog = false; render(); } });
   window.addEventListener('popstate', () => { syncFromUrl(); render(); });
+
+  // onboard form inputs sync to state (delegated on the dialog container)
+  root.addEventListener('input', function (e) {
+    if (e.target.id === 'ob-name') state.onboardName = e.target.value;
+    else if (e.target.id === 'ob-repo') state.onboardRepo = e.target.value;
+    else if (e.target.id === 'ob-stack') state.onboardStack = e.target.value;
+    else if (e.target.id === 'ob-shadow') state.onboardShadow = e.target.checked;
+  });
 
   syncFromUrl();
   render();

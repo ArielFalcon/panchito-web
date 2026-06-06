@@ -4,7 +4,7 @@
 (function () {
   const DICT = {
     en: {
-      'nav.how': 'how it works', 'nav.engine': 'live engine', 'nav.compare': 'compare', 'nav.cta': 'Run a scenario', 'nav.console': 'console',
+      'nav.how': 'how it works', 'nav.engine': 'live engine', 'nav.compare': 'compare', 'nav.cta': 'Try it!', 'nav.console': 'console',
 
       'hero.kicker': 'Autonomous E2E QA',
       'hero.h1': 'Tests every deploy.\nTrusts none of them.',
@@ -96,7 +96,7 @@
       'footer.wink': 'made with panchito',
     },
     es: {
-      'nav.how': 'cómo funciona', 'nav.engine': 'motor en vivo', 'nav.compare': 'comparar', 'nav.cta': 'Ejecutar un escenario', 'nav.console': 'consola',
+      'nav.how': 'cómo funciona', 'nav.engine': 'motor en vivo', 'nav.compare': 'comparar', 'nav.cta': 'Pruébalo', 'nav.console': 'consola',
 
       'hero.kicker': 'QA E2E autónomo',
       'hero.h1': 'Prueba cada deploy.\nNo confía en ninguno.',

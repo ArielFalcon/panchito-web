@@ -93,7 +93,7 @@ h2.section-title {
   background-size: 28px 28px;
 }
 .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 28px; position: relative; }
-.section { padding: clamp(52px, 8vh, 100px) 0; }
+.section { padding: clamp(52px, 8vh, 100px) 0; scroll-margin-top: calc(var(--nav-h) + 16px); }
 .divider-rule { height: 1px; background: var(--line-ink); }
 
 /* ── Technical-drawing details ─────────────────────────────────────────── */
@@ -181,6 +181,8 @@ h2.section-title {
 .nav__link { font-family: var(--font-mono); font-size: 12.5px; letter-spacing: 0.02em;
   color: var(--muted-ink); transition: color var(--dur-fast); }
 .nav__link:hover { color: var(--ink-900); }
+.nav__link--console { color: var(--ember-600); font-weight: 600; }
+.nav__link--console:hover { color: var(--ember-500); }
 .nav__right { display: flex; align-items: center; gap: 12px; }
 .lang {
   display: inline-flex; border: 1px solid var(--line-ink); border-radius: var(--radius-sm);
@@ -555,7 +557,8 @@ h2.section-title {
   .demo__text { position: static; }
   .engine__panel { grid-template-columns: 1fr; }
   .engine__controls { border-right: 0; border-bottom: 1px solid var(--line); }
-  .nav__links { display: none; }
+  .nav__links { gap: 16px; }
+  .nav__links .nav__link:not(.nav__link--console) { display: none; }
 }
 @media (max-width: 620px) {
   html { font-size: 15px; }
