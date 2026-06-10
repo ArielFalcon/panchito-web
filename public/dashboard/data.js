@@ -8,6 +8,30 @@ window.PanchitoData = (function () {
 
   const runs = [
     {
+      // Result of a "Live engine" run — the landing's Scenario Engine links here
+      // via /dashboard?run=r-live. Replace with the real run id from the backend
+      // demo-mode when wired.
+      id: 'r-live', app: 'your-org/shop', sha: 'demo123', verdict: 'fail', mode: 'diff',
+      message: 'feat(checkout): tiered discount in payments-service', author: 'you',
+      time: 'just now', specs: 3, reviewer: 'approved', decision: 'PR #214 (2 green flows) · Issue #92 (refund mismatch)',
+      branch: 'DEV', duration: '1m 12s',
+      stages: [['classify', 'done'], ['generate', 'done'], ['validate', 'done'], ['execute', 'fail'], ['decide', 'done']],
+      changed: ['payments-service/DiscountService.java', 'checkout-service/DiscountClient.java', 'web-frontend/checkout-ui.ts'],
+      newSpecs: [
+        { file: 'e2e/checkout/coupon.spec.ts', status: 'pass', n: 2 },
+        { file: 'e2e/checkout/refund.spec.ts', status: 'fail', n: 1 },
+        { file: 'e2e/checkout/price-display.spec.ts', status: 'pass', n: 1 },
+      ],
+      log: [
+        ['$', 'panchito qa your-org/shop · last 10 commits'],
+        ['›', 'blast radius · 3 routes · 1 cross-repo (payments→checkout)'],
+        ['›', 'generate · wrote 3 specs · reviewer approved 3/3'],
+        ['›', 'change-coverage · 11/11 changed lines'],
+        ['~', 'execute · 2 passed · 1 failed'],
+        ['✗', 'verdict FAIL → PR #214 (green flows) + Issue #92 (refund mismatch)'],
+      ],
+    },
+    {
       id: 'r-1841', app: 'web-app', sha: '9f6edf2', verdict: 'pass', mode: 'diff',
       message: 'feat(map): cluster nearby pins at low zoom', author: 'maria',
       time: '4m ago', specs: 4, reviewer: 'approved', decision: 'PR #182 · auto-merge',

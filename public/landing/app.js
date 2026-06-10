@@ -45,6 +45,7 @@
     players.demo2 = window.createPlayer($('#stage-2'), S.demo2(), { region: $('#demo-2') });
     players.demo3 = window.createPlayer($('#stage-3'), S.demo3(), { region: $('#demo-3') });
     players.demo4 = window.createPlayer($('#stage-4'), S.demo4(), { region: $('#demo-4') });
+    players.demo5 = window.createPlayer($('#stage-5'), S.demo5(), { region: $('#demo-5') });
     D.start();
 
     // replay buttons — force that demo to replay, taking the slot

@@ -298,6 +298,163 @@
     };
   }
 
+  /* ── DEMO 5 · the learning layer (flywheel feeds a growing rulebook) ─ */
+  function demo5() {
+    const ic = window.PUI.ic;
+    const NS = 'http://www.w3.org/2000/svg';
+    return {
+      mount(root) {
+        const wrap = el('div', 'stage-surface');
+        const L = el('div', 'learn');
+        L.innerHTML = `
+          <div class="learn__head">
+            <span class="learn__intake">${ic('repeat', 'style="width:14px;height:14px"')}<span class="t-loop"></span></span>
+            <span class="learn__hint t-hint"></span>
+          </div>
+          <div class="wheelwrap"></div>
+          <div class="wread" data-k="read"><span class="wread__p">›</span><b class="wread__stage"></b><span class="wread__txt"></span></div>
+          <div class="wbook">
+            <div class="wbook__head">
+              <span class="wbook__title t-book"></span>
+              <span class="wbook__rule"></span>
+              <span class="wbook__count"><b data-k="count">46</b> <span class="t-rulesword"></span></span>
+            </div>
+            <div class="wstack">
+              <div class="wreject is-hidden" data-k="reject">${ic('x', 'style="width:14px;height:14px"')}<span><b class="wreject__id">R-048</b> <span class="t-discarded"></span></span></div>
+              <div class="wcard wcard--new is-hidden" data-k="newcard">
+                <span class="wcard__rid">R-047</span>
+                <span class="wcard__text t-rulenew"></span>
+                <span class="lstamp lstamp--new t-stamp"></span>
+              </div>
+              <div class="wcard wcard--old"><span class="wcard__rid">R-046</span><span class="wcard__text t-rule2"></span></div>
+              <div class="wcard wcard--old"><span class="wcard__rid">R-045</span><span class="wcard__text t-rule1"></span></div>
+            </div>
+          </div>
+          <div class="learn__foot" data-k="foot">${ic('check-check', 'style="width:15px;height:15px"')}<b class="t-foot"></b></div>`;
+        wrap.appendChild(L);
+        root.appendChild(wrap);
+
+        // ── build the flywheel ──
+        const cx = 180, cy = 122, R = 84;
+        const mk = (tag, a) => { const e = document.createElementNS(NS, tag); for (const k in a) e.setAttribute(k, a[k]); return e; };
+        const svg = mk('svg', { class: 'wheel', viewBox: '0 0 360 256' });
+        svg.appendChild(mk('circle', { class: 'wtrack', cx, cy, r: R }));
+        const prog = mk('circle', { class: 'wprog', cx, cy, r: R, pathLength: '100', transform: `rotate(-90 ${cx} ${cy})` });
+        prog.style.strokeDasharray = '100'; prog.style.strokeDashoffset = '100'; svg.appendChild(prog);
+        const blob = mk('g', { class: 'wblob' });
+        const disc = mk('circle', { class: 'wblob__disc', cx, cy }); blob.appendChild(disc);
+        const blobId = mk('text', { class: 'wblob__id', x: cx, y: cy }); blob.appendChild(blobId);
+        svg.appendChild(blob);
+        const NODES = {
+          lab: { x: cx, y: cy - R, n: '1', name: 'labeler', lx: cx, ly: cy - R - 24, anc: 'middle' },
+          ora: { x: cx + R, y: cy, n: '2', name: 'oracle', lx: cx + R + 20, ly: cy + 4, anc: 'start' },
+          ref: { x: cx, y: cy + R, n: '3', name: 'reflector', lx: cx, ly: cy + R + 30, anc: 'middle' },
+          dis: { x: cx - R, y: cy, n: '4', name: 'distiller', lx: cx - R - 20, ly: cy + 4, anc: 'end' },
+        };
+        const nodeEls = {};
+        Object.keys(NODES).forEach((k) => {
+          const nd = NODES[k]; const g = mk('g', { class: 'wnode' });
+          g.appendChild(mk('circle', { class: 'wnode__pulse', cx: nd.x, cy: nd.y, r: 15 }));
+          g.appendChild(mk('circle', { class: 'wnode__pulse wnode__pulse--2', cx: nd.x, cy: nd.y, r: 15 }));
+          g.appendChild(mk('circle', { class: 'wnode__c', cx: nd.x, cy: nd.y, r: 13 }));
+          const num = mk('text', { class: 'wnode__n', x: nd.x, y: nd.y, 'text-anchor': 'middle', 'dominant-baseline': 'central' }); num.textContent = nd.n; g.appendChild(num);
+          const lb = mk('text', { class: 'wnode__lbl', x: nd.lx, y: nd.ly, 'text-anchor': nd.anc }); lb.textContent = nd.name; g.appendChild(lb);
+          svg.appendChild(g); nodeEls[k] = g;
+        });
+        L.querySelector('.wheelwrap').appendChild(svg);
+
+        const q = (s) => L.querySelector(s);
+        const readStage = q('.wread__stage'), readTxt = q('.wread__txt'), count = q('[data-k="count"]');
+        const newcard = q('[data-k="newcard"]'), reject = q('[data-k="reject"]');
+        let cur = null;
+
+        function paint() {
+          q('.t-loop').textContent = t('d5.loop');
+          q('.t-hint').textContent = t('d5.hint');
+          q('.t-book').textContent = t('d5.ledger');
+          q('.t-rulesword').textContent = t('d5.rulesword');
+          q('.t-rulenew').textContent = t('d5.rulenew');
+          q('.t-rule1').textContent = t('d5.rule1');
+          q('.t-rule2').textContent = t('d5.rule2');
+          q('.t-stamp').textContent = t('d5.new');
+          q('.t-discarded').textContent = t('d5.discarded');
+          q('.t-foot').textContent = t('d5.never');
+        }
+        function setRead(stage, key) { readStage.textContent = stage || ''; readTxt.textContent = key ? t(key) : ''; }
+        function clearNodes() { Object.values(nodeEls).forEach((g) => g.classList.remove('active', 'lit', 'done')); cur = null; }
+        function snapArc(v) { prog.style.transition = 'none'; prog.style.strokeDashoffset = v; void prog.getBoundingClientRect(); prog.style.transition = ''; }
+        function hideAll() {
+          clearNodes();
+          snapArc('100'); prog.classList.remove('done');
+          blob.classList.remove('in', 'sent', 'validated', 'rejected', 'discard'); blobId.textContent = '';
+          count.textContent = '46'; count.classList.remove('pop');
+          q('[data-k="read"]').classList.remove('show', 'is-fail', 'is-grow'); setRead('', '');
+          newcard.classList.add('is-hidden'); newcard.classList.remove('show', 'validated');
+          reject.classList.add('is-hidden'); reject.classList.remove('show');
+          const st = q('.t-stamp'); st.className = 'lstamp lstamp--new t-stamp'; st.textContent = t('d5.new');
+          q('[data-k="foot"]').classList.remove('show');
+        }
+        return {
+          read(stage, key, mod) { const r = q('[data-k="read"]'); r.classList.add('show'); r.classList.remove('is-fail', 'is-grow'); if (mod) r.classList.add(mod); setRead(stage, key); },
+          enter(k, nextOff) {
+            if (cur && nodeEls[cur]) { nodeEls[cur].classList.remove('active'); nodeEls[cur].classList.add('lit'); }
+            nodeEls[k] && nodeEls[k].classList.add('active'); cur = k;
+            if (nextOff != null) prog.style.strokeDashoffset = String(nextOff);
+          },
+          complete() {
+            Object.values(nodeEls).forEach((g) => { g.classList.remove('active', 'lit'); g.classList.add('done'); });
+            cur = null; prog.style.strokeDashoffset = '0'; prog.classList.add('done');
+          },
+          bloom(id) {
+            blob.classList.remove('sent', 'validated', 'rejected', 'discard');
+            blobId.textContent = id; void blob.getBoundingClientRect(); blob.classList.add('in');
+          },
+          transfer() {
+            blob.classList.add('validated'); void blob.getBoundingClientRect(); blob.classList.add('sent');
+            newcard.classList.remove('is-hidden'); void newcard.offsetWidth; newcard.classList.add('show');
+            count.textContent = '47'; count.classList.remove('pop'); void count.getBoundingClientRect(); count.classList.add('pop');
+          },
+          promote() {
+            newcard.classList.add('validated');
+            const st = q('.t-stamp'); st.className = 'lstamp lstamp--ok t-stamp'; st.textContent = t('d5.promoted');
+          },
+          discard() {
+            blob.classList.add('rejected'); void blob.getBoundingClientRect(); blob.classList.add('discard');
+            reject.classList.remove('is-hidden'); void reject.offsetWidth; reject.classList.add('show');
+          },
+          cycleReset() {
+            clearNodes();
+            snapArc('100'); prog.classList.remove('done');
+            blob.classList.remove('in', 'sent', 'validated', 'rejected', 'discard'); blobId.textContent = '';
+            reject.classList.add('is-hidden'); reject.classList.remove('show');
+            q('[data-k="foot"]').classList.remove('show');
+          },
+          show(k) { const n = q('[data-k="' + k + '"]'); n && n.classList.add('show'); },
+          reset() { paint(); hideAll(); },
+        };
+      },
+      duration: 14000,
+      steps: [
+        { at: 300,   run: (c) => c.read('run', 'd5.run', 'is-fail') },
+        { at: 1000,  run: (c) => { c.enter('lab', 75); c.read('labeler', 'd5.lab'); } },
+        { at: 1950,  run: (c) => { c.enter('ora', 50); c.read('oracle', 'd5.ora'); } },
+        { at: 2900,  run: (c) => { c.enter('ref', 25); c.read('reflector', 'd5.ref'); } },
+        { at: 3850,  run: (c) => { c.enter('dis', 0); c.read('distiller', 'd5.dis'); } },
+        { at: 4800,  run: (c) => { c.complete(); c.bloom('R-047'); c.read('distill', 'd5.loopmsg', 'is-grow'); } },
+        { at: 5650,  run: (c) => { c.transfer(); c.read('attribution', 'd5.attrib', 'is-grow'); } },
+        { at: 6450,  run: (c) => c.promote() },
+        { at: 7450,  run: (c) => { c.cycleReset(); c.read('run', 'd5.run2', 'is-fail'); } },
+        { at: 8150,  run: (c) => { c.enter('lab', 75); c.read('labeler', 'd5.lab2'); } },
+        { at: 9050,  run: (c) => { c.enter('ora', 50); c.read('oracle', 'd5.ora2'); } },
+        { at: 9950,  run: (c) => { c.enter('ref', 25); c.read('reflector', 'd5.ref2'); } },
+        { at: 10850, run: (c) => { c.enter('dis', 0); c.read('distiller', 'd5.dis2'); } },
+        { at: 11800, run: (c) => { c.complete(); c.bloom('R-048'); c.read('candidate', 'd5.candidate', 'is-grow'); } },
+        { at: 12650, run: (c) => { c.discard(); c.read('discard', 'd5.discard', 'is-fail'); } },
+        { at: 13450, run: (c) => c.show('foot') },
+      ],
+    };
+  }
+
   /* ── ENGINE · full pipeline (capped) ───────────────────────────────── */
   function makeEngine(rail) {
     return function (opts) {
@@ -310,7 +467,7 @@
           var gh1 = GHCard(), gh2 = GHCard();
           var dashLink = el('a', 'engine__dash');
           dashLink.href = '/dashboard?run=r-live';
-          dashLink.innerHTML = window.PUI.ic('external-link') + '<span>View full result in console →</span>';
+          dashLink.innerHTML = window.PUI.ic('external-link') + '<span>' + t('eng.report') + '</span>';
           [term.el, gh1.el, gh2.el, dashLink].forEach(function (e) { wrap.appendChild(e); });
           root.innerHTML = ''; root.appendChild(wrap);
           rail.reset();
@@ -412,5 +569,5 @@
     { feat: 'cmp.f7', cells: [CK, NO, NO, NO, NO] },
   ];
 
-  window.LandingScenarios = { demo1, demo2, demo3, demo4, makeEngine, heroLoop, COMPARE };
+  window.LandingScenarios = { demo1, demo2, demo3, demo4, demo5, makeEngine, heroLoop, COMPARE };
 })();
