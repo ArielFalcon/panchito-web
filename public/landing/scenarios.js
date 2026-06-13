@@ -189,7 +189,295 @@
     };
   }
 
-  /* ── DEMO 3 · ask it anything, on any channel ──────────────────────── */
+  /* ── DEMO 3 · dual-SDK runtime (opencode / codex / DUAL, hot-swap) ──── */
+  function demoSDK() {
+    const ic = window.PUI.ic;
+    let api = null, interactive = false, locals = [];
+    // Selectable model menus per SDK (3 options each).
+    const MODELS = {
+      opencode: ['DeepSeek-V4 Pro', 'Kimi 2.6', 'Minimax M3'],
+      codex: ['GPT-5.5', 'GPT-5.4', 'GPT-5.4-mini'],
+    };
+    const modelDD = (kind) => `
+      <div class="sdkmodel" data-model-for="${kind}">
+        <button type="button" class="sdkmodel__btn">${ic('cpu', 'class="sdkmodel__cpu"')}<span class="sdkmodel__name">${MODELS[kind][0]}</span>${ic('chevron-down', 'class="sdkmodel__chev"')}</button>
+        <div class="sdkmodel__menu" role="listbox">
+          ${MODELS[kind].map((m, i) => `<button type="button" data-model="${m}"${i === 0 ? ' class="is-sel"' : ''}>${m}</button>`).join('')}
+        </div>
+      </div>`;
+    const clearLocals = () => { locals.forEach(clearTimeout); locals = []; };
+    const S = (ms, fn) => locals.push(setTimeout(fn, ms));
+
+    // Single-mode mini-sequences — reused by the clickable switch.
+    const SEQ = {
+      opencode() {
+        api.resetLanes(); api.setMode('opencode'); api.status();
+        S(140, () => api.step('opencode', t('sdk.o1')));
+        S(900, () => api.step('opencode', t('sdk.o2')));
+        S(1700, () => api.step('opencode', t('sdk.o3'), 'run'));
+        S(2600, () => { api.step('opencode', t('sdk.o4'), 'ok'); api.laneDone('opencode'); api.merged(t('sdk.mo'), 'ok'); });
+      },
+      codex() {
+        api.resetLanes(); api.setMode('codex'); api.status();
+        S(140, () => api.step('codex', t('sdk.c1')));
+        S(900, () => api.step('codex', t('sdk.c2')));
+        S(1700, () => api.step('codex', t('sdk.c3'), 'run'));
+        S(2600, () => { api.step('codex', t('sdk.c4'), 'ok'); api.laneDone('codex'); api.merged(t('sdk.mc'), 'ok'); });
+      },
+      dual() {
+        api.resetLanes(); api.setMode('dual'); api.status('dual');
+        S(320,  () => api.sendMsg('opencode', t('sdk.d_o1')));
+        S(2380, () => api.sendMsg('codex',    t('sdk.d_c1')));
+        S(4440, () => api.sendMsg('opencode', t('sdk.d_o2')));
+        S(6500, () => api.sendMsg('codex',    t('sdk.d_c2')));
+        S(8760, () => { api.laneDone('opencode'); api.laneDone('codex'); api.merged(t('sdk.md'), 'dual'); });
+      },
+    };
+    function goInteractive(mode) { interactive = true; clearLocals(); api.hint(true); SEQ[mode](); }
+
+    return {
+      mount(root) {
+        const wrap = el('div', 'stage-surface');
+        const root2 = el('div', 'sdk');
+        root2.innerHTML = `
+          <div class="sdk__bar">
+            <span class="sdk__barlabel">SDK</span>
+            <div class="sdk__switch" role="group" aria-label="SDK">
+              <button type="button" data-sdk="opencode"><span class="sdot"></span>${t('sdk.opencode')}</button>
+              <button type="button" data-sdk="codex">${t('sdk.codex')}</button>
+              <button type="button" data-sdk="dual">${t('sdk.dual')}</button>
+            </div>
+            <span class="sdk__hot">${ic('zap')}<span class="sdk__hottxt">${t('sdk.hotbadge')}</span></span>
+          </div>
+          <div class="sdk__lanes">
+            <div class="sdk__swap" aria-hidden="true">
+              <svg class="sdk__chan" viewBox="0 0 100 100" preserveAspectRatio="none">
+                <defs>
+                  <linearGradient id="sdkChanG" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0" stop-color="#d96a45"></stop>
+                    <stop offset="0.5" stop-color="#a98d8a"></stop>
+                    <stop offset="1" stop-color="#79b1cf"></stop>
+                  </linearGradient>
+                </defs>
+                <path class="sdk__chan__wire" d="M25,18 Q50,82 75,18"></path>
+                <path class="sdk__chan__pulse" d="M25,18 Q50,82 75,18"></path>
+              </svg>
+            </div>
+            <div class="sdklane sdklane--opencode is-idle" data-lane="opencode">
+              <div class="sdklane__head">
+                <span class="sdklane__name"><span class="ldot"></span>${t('sdk.opencode')}</span>
+                ${modelDD('opencode')}
+              </div>
+              <div class="sdklane__steps"></div>
+              <div class="sdklane__state"><span class="sdklane__statetxt">${t('sdk.idle')}</span></div>
+            </div>
+            <div class="sdk__spine">
+              <div class="sdk__spineV"></div>
+              <button type="button" class="sdk__spineNode" title="swap engine" aria-label="swap engine">${ic('arrow-left-right', 'style="width:11px;height:11px"')}</button>
+            </div>
+            <div class="sdklane sdklane--codex is-idle" data-lane="codex">
+              <div class="sdklane__head">
+                <span class="sdklane__name"><span class="ldot"></span>${t('sdk.codex')}</span>
+                ${modelDD('codex')}
+              </div>
+              <div class="sdklane__steps"></div>
+              <div class="sdklane__state"><span class="sdklane__statetxt">${t('sdk.idle')}</span></div>
+            </div>
+          </div>
+          <div class="sdk__verdict"><span class="sdk__verdict__tag"></span><span class="sdk__verdict__txt"></span></div>`;
+        wrap.appendChild(root2); root.appendChild(wrap);
+
+        const q = (s) => root2.querySelector(s);
+        const lanes = { opencode: q('[data-lane="opencode"]'), codex: q('[data-lane="codex"]') };
+        const switchBtns = root2.querySelectorAll('.sdk__switch button');
+        const hot = q('.sdk__hot'), hotTxt = q('.sdk__hottxt');
+        const spine = q('.sdk__spine'), swap = q('.sdk__swap'), verdict = q('.sdk__verdict');
+        const lanesEl = q('.sdk__lanes');
+        let orbs = [];
+        const steps = (k) => lanes[k].querySelector('.sdklane__steps');
+        const stateTxt = (k) => lanes[k].querySelector('.sdklane__statetxt');
+        function setLane(k, state, label) {
+          const l = lanes[k]; l.classList.remove('is-active', 'is-idle', 'is-done'); l.classList.add('is-' + state);
+          stateTxt(k).textContent = label || (state === 'active' ? t('sdk.active') : t('sdk.idle'));
+        }
+        switchBtns.forEach((b) => b.addEventListener('click', () => goInteractive(b.dataset.sdk)));
+
+        // Central swap node — toggles between the opencode and codex runs,
+        // exactly as if the matching top-bar button were tapped.
+        const spineNode = q('.sdk__spineNode');
+        spineNode.addEventListener('click', () => {
+          const onCodex = root2.querySelector('.sdk__switch [data-sdk="codex"]').classList.contains('is-on');
+          goInteractive(onCodex ? 'opencode' : 'codex');
+        });
+
+        // Model dropdowns — open one, pick one of three, reflect the choice.
+        root2.querySelectorAll('.sdkmodel').forEach((dd) => {
+          const btn = dd.querySelector('.sdkmodel__btn');
+          const nameEl = dd.querySelector('.sdkmodel__name');
+          btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const wasOpen = dd.classList.contains('open');
+            root2.querySelectorAll('.sdkmodel').forEach((o) => o.classList.remove('open'));
+            dd.classList.toggle('open', !wasOpen);
+          });
+          dd.querySelectorAll('.sdkmodel__menu button').forEach((opt) => {
+            opt.addEventListener('click', (e) => {
+              e.stopPropagation();
+              dd.querySelectorAll('.sdkmodel__menu button').forEach((o) => o.classList.remove('is-sel'));
+              opt.classList.add('is-sel');
+              nameEl.textContent = opt.dataset.model;
+              dd.classList.remove('open');
+            });
+          });
+        });
+        root2.addEventListener('click', () => { root2.querySelectorAll('.sdkmodel.open').forEach((o) => o.classList.remove('open')); });
+
+        // Type a string into a node, one glyph at a time (cleared by clearLocals).
+        function typeInto(node, text, cps, done) {
+          let i = 0;
+          (function tick() {
+            node.textContent = text.slice(0, i);
+            if (i >= text.length) { if (done) done(); return; }
+            i += 1; S(cps, tick);
+          })();
+        }
+
+        // The heart of DUAL: a message composed in one lane becomes a luminous orb,
+        // crosses the shared channel, and resolves back into text below the peer's last line.
+        function morphFly(from, to, fwd, draft, text) {
+          const caret = draft.querySelector('.sdkmsg__caret'); if (caret) caret.remove();
+          const lr = lanesEl.getBoundingClientRect();
+          const dr = draft.getBoundingClientRect();
+          const start = { x: dr.left - lr.left + 22, y: dr.top - lr.top + dr.height / 2 };
+          // reserve the destination slot (text already present, just hidden) so we can aim at it
+          const recvRow = el('div', 'sdkstep sdkmsg sdkmsg--in is-recv');
+          recvRow.innerHTML = '<span class="sdkstep__g">⇄</span><span class="sdkmsg__t">' + text + '</span>';
+          steps(to).appendChild(recvRow);
+          const rr = recvRow.getBoundingClientRect();
+          const end = { x: rr.left - lr.left + 22, y: rr.top - lr.top + rr.height / 2 };
+          // 2 · collapse the composed line into nothing — it has lifted off as the orb
+          draft.style.height = dr.height + 'px'; void draft.offsetWidth;
+          draft.classList.add('sdkmsg--lift');
+          draft.style.height = '0px'; draft.style.marginTop = '-8px'; draft.style.opacity = '0';
+          S(380, () => { if (draft.parentNode) draft.remove(); });
+          // fibre lights up in the direction of travel; the core flares as the orb passes through
+          swap.classList.remove('go-fwd', 'go-back'); void swap.offsetWidth; swap.classList.add(fwd ? 'go-fwd' : 'go-back');
+          S(300, () => { spineNode.classList.remove('merge'); void spineNode.offsetWidth; spineNode.classList.add('merge'); });
+          S(820, () => spineNode.classList.remove('merge'));
+          // 3 · the orb crosses to the other half along an arc
+          const orb = el('div', 'sdkmsg__orb ' + (fwd ? 'to-c' : 'to-o'));
+          lanesEl.appendChild(orb); orbs.push(orb);
+          const cx = (start.x + end.x) / 2, cy = Math.min(start.y, end.y) - 20;
+          const FLY = 720;
+          const anim = orb.animate([
+            { transform: 'translate(' + start.x + 'px,' + start.y + 'px) translate(-50%,-50%) scale(.25)', opacity: 0, offset: 0 },
+            { transform: 'translate(' + start.x + 'px,' + start.y + 'px) translate(-50%,-50%) scale(1)', opacity: 1, offset: .14 },
+            { transform: 'translate(' + cx + 'px,' + cy + 'px) translate(-50%,-50%) scale(1.24)', opacity: 1, offset: .5 },
+            { transform: 'translate(' + end.x + 'px,' + end.y + 'px) translate(-50%,-50%) scale(1)', opacity: 1, offset: .9 },
+            { transform: 'translate(' + end.x + 'px,' + end.y + 'px) translate(-50%,-50%) scale(.32)', opacity: 0, offset: 1 },
+          ], { duration: FLY, easing: 'cubic-bezier(.45,0,.2,1)', fill: 'forwards' });
+          lanes[from].classList.add('is-active');
+          S(FLY - 210, () => { lanes[to].classList.remove('is-recv-pulse'); void lanes[to].offsetWidth; lanes[to].classList.add('is-recv-pulse'); });
+          S(FLY + 520, () => lanes[to].classList.remove('is-recv-pulse'));
+          anim.onfinish = () => {
+            orb.remove(); orbs = orbs.filter((o) => o !== orb);
+            lanes[from].classList.remove('is-emit');
+            recvRow.classList.add('land');   // 4 · the orb resolves into text at its final position
+          };
+        }
+
+        api = {
+          el: root2,
+          setMode(mode) {
+            switchBtns.forEach((b) => b.classList.toggle('is-on', b.dataset.sdk === mode));
+            root2.classList.toggle('sdk--dual', mode === 'dual');
+            if (mode === 'opencode') { setLane('opencode', 'active'); setLane('codex', 'idle'); spine.classList.remove('is-dual'); }
+            else if (mode === 'codex') { setLane('codex', 'active'); setLane('opencode', 'idle'); spine.classList.remove('is-dual'); }
+            else { setLane('opencode', 'active'); setLane('codex', 'active'); spine.classList.add('is-dual'); }
+          },
+          handed(k) { setLane(k, 'idle', t('sdk.handed')); },
+          step(k, text, cls) {
+            const g = cls === 'ok' ? '✓' : cls === 'run' ? '▸' : cls === 'recv' ? '⇄' : cls === 'fb' ? '↩' : '›';
+            const row = el('div', 'sdkstep' + (cls ? ' is-' + cls : ''));
+            row.innerHTML = `<span class="sdkstep__g">${g}</span><span>${text}</span>`;
+            steps(k).appendChild(row); setTimeout(() => row.classList.add('in'), 16);
+          },
+          laneDone(k) { lanes[k].classList.remove('is-active', 'is-idle'); lanes[k].classList.add('is-done'); stateTxt(k).textContent = t('sdk.donelbl'); },
+          flow(dir) {
+            const fwd = (dir || 'fwd') !== 'back';
+            swap.classList.remove('go-fwd', 'go-back'); void swap.offsetWidth;
+            swap.classList.add(fwd ? 'go-fwd' : 'go-back');
+          },
+          swapArc(dir) { this.flow(dir); this.pingSpine(); },   // hot-swap fibre sweep (no message)
+          sendMsg(from, text) {
+            const fwd = from === 'opencode';                    // opencode → codex is "forward"
+            lanes[from].classList.add('is-active');
+            lanes[from].classList.remove('is-emit'); void lanes[from].offsetWidth; lanes[from].classList.add('is-emit');
+            // 1 · compose: the sender types an instruction aimed at its peer
+            const draft = el('div', 'sdkstep sdkmsg sdkmsg--draft is-out');
+            draft.innerHTML = '<span class="sdkstep__g">›</span><span class="sdkmsg__t"></span><span class="sdkmsg__caret"></span>';
+            steps(from).appendChild(draft);
+            requestAnimationFrame(() => draft.classList.add('in'));
+            typeInto(draft.querySelector('.sdkmsg__t'), text, 22, () => {
+              draft.classList.add('sdkmsg--ready');
+              S(190, () => morphFly(from, fwd ? 'codex' : 'opencode', fwd, draft, text));
+            });
+          },
+          pingSpine() { spineNode.classList.remove('ping'); void spineNode.offsetWidth; spineNode.classList.add('ping'); },
+          spine(on) { spine.classList.toggle('is-dual', !!on); },
+          status(kind) {
+            hot.classList.remove('is-swap', 'is-dual', 'flash'); void hot.offsetWidth; hot.classList.add('flash');
+            if (kind === 'swap') { hot.classList.add('is-swap'); hotTxt.textContent = t('sdk.swap'); }
+            else if (kind === 'dual') { hot.classList.add('is-dual'); hotTxt.textContent = t('sdk.dualon'); }
+            else { hotTxt.textContent = t('sdk.hotbadge'); }
+          },
+          merged(text, kind) {
+            verdict.classList.remove('is-ok', 'is-dual'); verdict.classList.add(kind === 'dual' ? 'is-dual' : 'is-ok');
+            verdict.querySelector('.sdk__verdict__tag').textContent = kind === 'dual' ? t('sdk.tagdual') : t('sdk.tagok');
+            verdict.querySelector('.sdk__verdict__txt').textContent = text; verdict.classList.add('show');
+          },
+          hint(on) { root2.classList.toggle('sdk--live', !!on); },
+          resetLanes() {
+            orbs.forEach((o) => { try { o.getAnimations().forEach((a) => a.cancel()); } catch (e) {} o.remove(); }); orbs = [];
+            ['opencode', 'codex'].forEach((k) => { steps(k).innerHTML = ''; setLane(k, 'idle'); lanes[k].classList.remove('is-emit', 'is-recv-pulse'); });
+            spine.classList.remove('is-dual'); swap.classList.remove('go-fwd', 'go-back');
+            spineNode.classList.remove('merge', 'ping'); root2.classList.remove('sdk--dual');
+            verdict.classList.remove('show', 'is-ok', 'is-dual');
+          },
+          reset() {
+            this.resetLanes();
+            switchBtns.forEach((b) => b.classList.toggle('is-on', b.dataset.sdk === 'opencode'));
+            hot.classList.remove('is-swap', 'is-dual', 'flash'); hotTxt.textContent = t('sdk.hotbadge');
+            root2.classList.remove('sdk--live');
+          },
+        };
+        return { api, reset() { interactive = false; clearLocals(); api.reset(); } };
+      },
+      duration: 17800,
+      steps: [
+        /* ── Phase A · opencode runs solo ── */
+        { at: 200,  run: () => { if (interactive) return; api.setMode('opencode'); } },
+        { at: 420,  run: () => { if (interactive) return; api.step('opencode', t('sdk.o1')); } },
+        { at: 1180, run: () => { if (interactive) return; api.step('opencode', t('sdk.o2')); } },
+        { at: 1960, run: () => { if (interactive) return; api.step('opencode', t('sdk.o3'), 'run'); } },
+        /* ── Phase B · hot-swap to codex, state carried over ── */
+        { at: 2900, run: () => { if (interactive) return; api.status('swap'); api.swapArc('fwd', 'hot'); } },
+        { at: 3650, run: () => { if (interactive) return; api.setMode('codex'); api.handed('opencode'); api.step('codex', t('sdk.c_recv'), 'recv'); } },
+        { at: 4500, run: () => { if (interactive) return; api.step('codex', t('sdk.c3'), 'run'); } },
+        { at: 5350, run: () => { if (interactive) return; api.step('codex', t('sdk.c4'), 'ok'); api.laneDone('codex'); } },
+        /* ── Phase C · DUAL · the two engines talk: each message is composed, sent as light, and lands as text on the peer ── */
+        { at: 6350, run: () => { if (interactive) return; api.status('dual'); } },
+        { at: 6650, run: () => { if (interactive) return; api.resetLanes(); api.setMode('dual'); } },
+        { at: 7050,  run: () => { if (interactive) return; api.sendMsg('opencode', t('sdk.d_o1')); } },
+        { at: 9110,  run: () => { if (interactive) return; api.sendMsg('codex', t('sdk.d_c1')); } },
+        { at: 11170, run: () => { if (interactive) return; api.sendMsg('opencode', t('sdk.d_o2')); } },
+        { at: 13230, run: () => { if (interactive) return; api.sendMsg('codex', t('sdk.d_c2')); } },
+        { at: 15490, run: () => { if (interactive) return; api.laneDone('opencode'); api.laneDone('codex'); api.merged(t('sdk.md'), 'dual'); } },
+      ],
+    };
+  }
+
+  /* ── DEMO 4 · ask it anything, on any channel ──────────────────────── */
   function demo3() {
     let chat = null, interactive = false, locals = [];
     const clearLocals = () => { locals.forEach(clearTimeout); locals = []; };
@@ -233,7 +521,7 @@
     };
   }
 
-  /* ── DEMO 4 · it tests itself (run → error → maintainer → fix → main) ─ */
+  /* ── DEMO 5 · it tests itself (run → error → maintainer → fix → main) ─ */
   function demo4() {
     return {
       mount(root) {
@@ -298,7 +586,7 @@
     };
   }
 
-  /* ── DEMO 5 · the learning layer (flywheel feeds a growing rulebook) ─ */
+  /* ── DEMO 6 · the learning layer (flywheel feeds a growing rulebook) ─ */
   function demo5() {
     const ic = window.PUI.ic;
     const NS = 'http://www.w3.org/2000/svg';
@@ -569,5 +857,5 @@
     { feat: 'cmp.f7', cells: [CK, NO, NO, NO, NO] },
   ];
 
-  window.LandingScenarios = { demo1, demo2, demo3, demo4, demo5, makeEngine, heroLoop, COMPARE };
+  window.LandingScenarios = { demo1, demo2, demoSDK, demo3, demo4, demo5, makeEngine, heroLoop, COMPARE };
 })();

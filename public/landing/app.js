@@ -43,6 +43,7 @@
     players.hero = S.heroLoop($('#hero-demo-body'), { region: $('#hero') });
     players.demo1 = window.createPlayer($('#stage-1'), S.demo1(), { region: $('#demo-1') });
     players.demo2 = window.createPlayer($('#stage-2'), S.demo2(), { region: $('#demo-2') });
+    players.demoSdk = window.createPlayer($('#stage-sdk'), S.demoSDK(), { region: $('#demo-sdk') });
     players.demo3 = window.createPlayer($('#stage-3'), S.demo3(), { region: $('#demo-3') });
     players.demo4 = window.createPlayer($('#stage-4'), S.demo4(), { region: $('#demo-4') });
     players.demo5 = window.createPlayer($('#stage-5'), S.demo5(), { region: $('#demo-5') });

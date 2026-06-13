@@ -674,6 +674,187 @@ h2.section-title {
   .wblob.discard { opacity: 0 !important; }
 }
 
+/* ═══ Demo 3 · dual-SDK runtime (opencode / codex / DUAL, hot-swap) ════ */
+.sdk { display: flex; flex-direction: column; min-height: 410px; background: #14130f;
+  --e: cubic-bezier(0.22, 1, 0.36, 1); }
+/* top bar — the engine switch */
+.sdk__bar { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--line); background: var(--ink); }
+.sdk__barlabel { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); flex: none; }
+.sdk__switch { display: inline-flex; gap: 2px; background: var(--ink-2); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 2px; transition: box-shadow 0.4s var(--e); }
+.sdk__switch button { appearance: none; border: 0; background: transparent; cursor: pointer; display: inline-flex; align-items: center; gap: 7px;
+  font-family: var(--font-mono); font-size: 11.5px; letter-spacing: 0.02em; color: var(--muted); padding: 6px 13px; border-radius: 3px;
+  transition: background 0.32s var(--e), color 0.32s var(--e); }
+.sdk__switch button .sdot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; opacity: 0.45; transition: all 0.32s var(--e); }
+.sdk__switch button:hover:not(.is-on) { color: var(--fg); background: rgba(244,241,233,.05); }
+.sdk__switch button.is-on { color: #fff; background: var(--brand); }
+.sdk__switch button.is-on .sdot { opacity: 1; background: #fff; }
+.sdk__switch button[data-sdk="dual"].is-on { background: linear-gradient(90deg, var(--brand) 0%, var(--info-d) 100%); color: #fff; }
+.sdk--live .sdk__switch { box-shadow: 0 0 0 2px rgba(217,106,69,.2); }
+.sdk__hot { margin-left: auto; flex: none; display: inline-flex; align-items: center; gap: 6px; font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.04em;
+  color: var(--muted); border: 1px solid var(--line); border-radius: var(--radius-xs); padding: 5px 9px; white-space: nowrap;
+  transition: color 0.4s var(--e), border-color 0.4s var(--e), background 0.4s var(--e); }
+.sdk__hot svg { width: 12px; height: 12px; color: var(--muted); transition: color 0.4s var(--e); }
+.sdk__hot.is-swap { color: var(--flaky-d); border-color: rgba(226,173,69,.4); background: rgba(226,173,69,.08); }
+.sdk__hot.is-swap svg { color: var(--flaky-d); }
+.sdk__hot.is-dual { color: var(--info-d); border-color: rgba(121,177,207,.4); background: rgba(121,177,207,.08); }
+.sdk__hot.is-dual svg { color: var(--info-d); }
+.sdk__hot.flash { animation: sdkflash 0.6s var(--e); }
+@keyframes sdkflash { 0% { transform: scale(1); } 42% { transform: scale(1.07); } 100% { transform: scale(1); } }
+
+/* two SDK lanes + a sync spine between them */
+.sdk__lanes { position: relative; flex: 1; display: grid; grid-template-columns: 1fr 42px 1fr; min-width: 0; }
+.sdklane { position: relative; display: flex; flex-direction: column; padding: 15px 16px; min-width: 0;
+  transition: opacity 0.5s var(--e); }
+.sdklane.is-idle { opacity: 0.32; }
+.sdklane.is-active, .sdklane.is-done { opacity: 1; }
+.sdklane__head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-bottom: 11px; margin-bottom: 12px; border-bottom: 1px solid var(--line); min-width: 0; }
+.sdklane__name { display: flex; align-items: center; gap: 9px; font-family: var(--font-display); font-weight: 800; font-size: 15px; letter-spacing: -0.02em; color: var(--fg); min-width: 0; }
+.sdklane__name .ldot { width: 8px; height: 8px; border-radius: 50%; background: #55524800; box-shadow: inset 0 0 0 1.5px #565249; flex: none; transition: all 0.45s var(--e); }
+.sdklane.is-active .sdklane__name .ldot { background: var(--brand-bright); box-shadow: 0 0 0 3px rgba(217,106,69,.22); }
+.sdklane.is-done .sdklane__name .ldot { background: var(--pass-d); box-shadow: none; }
+.sdklane__steps { display: flex; flex-direction: column; gap: 8px; flex: 1; }
+.sdkstep { display: flex; align-items: flex-start; gap: 9px; font-family: var(--font-mono); font-size: 11.5px; line-height: 1.45; color: var(--fg);
+  opacity: 0; transform: translateY(4px); transition: opacity 0.36s var(--e), transform 0.36s var(--e); }
+.sdkstep.in { opacity: 1; transform: none; }
+.sdkstep__g { flex: none; width: 11px; text-align: center; color: var(--muted); }
+.sdkstep.is-ok { color: var(--pass-d); } .sdkstep.is-ok .sdkstep__g { color: var(--pass-d); }
+.sdkstep.is-run .sdkstep__g { color: var(--brand-bright); }
+.sdkstep.is-recv { color: var(--info-d); } .sdkstep.is-recv .sdkstep__g { color: var(--info-d); }
+.sdkstep.is-fb { color: var(--flaky-d); } .sdkstep.is-fb .sdkstep__g { color: var(--flaky-d); }
+.sdklane__state { margin-top: 12px; font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
+  display: inline-flex; align-items: center; gap: 7px; }
+.sdklane__state::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: currentColor; opacity: 0.6; }
+.sdklane.is-active .sdklane__state { color: var(--brand-bright); }
+.sdklane.is-done .sdklane__state { color: var(--pass-d); }
+
+/* sync spine */
+.sdk__spine { position: relative; }
+.sdk__spineV { position: absolute; left: 50%; top: 18px; bottom: 48px; width: 2px; transform: translateX(-1px); border-radius: 2px;
+  background: var(--line); transition: background 0.5s var(--e); }
+.sdk__spine.is-dual .sdk__spineV { background: linear-gradient(var(--brand-bright), var(--info-d)); }
+.sdk__spineNode { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 24px; height: 24px; border-radius: 50%; z-index: 5;
+  appearance: none; padding: 0; cursor: pointer; background: var(--ink-2); border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; color: var(--muted);
+  transition: border-color 0.4s var(--e), color 0.4s var(--e), transform 0.25s var(--e), box-shadow 0.25s var(--e); }
+.sdk__spineNode:hover { border-color: var(--brand); color: var(--brand-bright); transform: translate(-50%, -50%) scale(1.14); box-shadow: 0 0 0 4px rgba(217,106,69,.14); }
+.sdk__spineNode:active { transform: translate(-50%, -50%) scale(1.02); }
+.sdk__spineNode.ping { animation: sdkping 0.65s var(--e); }
+@keyframes sdkping { 0% { box-shadow: 0 0 0 0 rgba(217,106,69,.45); } 60% { box-shadow: 0 0 0 9px rgba(217,106,69,0); } 100% { box-shadow: 0 0 0 0 rgba(217,106,69,0); } }
+/* merge flare — the shared core lights up the instant the payload passes through it */
+.sdk__spineNode.merge { animation: sdkmerge 0.5s var(--e); }
+.sdk__spineNode.merge svg { animation: sdkmergespin 0.5s var(--e); }
+@keyframes sdkmerge {
+  0% { transform: translate(-50%,-50%) scale(1); border-color: var(--brand); color: var(--brand-bright); box-shadow: 0 0 0 0 rgba(255,255,255,.4); }
+  45% { transform: translate(-50%,-50%) scale(1.42); border-color: #fff; color: #fff; box-shadow: 0 0 18px 5px rgba(255,255,255,.45); background: var(--brand); }
+  100% { transform: translate(-50%,-50%) scale(1); border-color: var(--brand); color: var(--brand-bright); box-shadow: 0 0 0 0 rgba(255,255,255,0); }
+}
+@keyframes sdkmergespin { 0% { transform: rotate(0); } 100% { transform: rotate(180deg); } }
+.sdk__spine.is-dual .sdk__spineNode { border-color: var(--brand); color: var(--brand-bright); }
+.sdk__spineNode::after { content: ""; position: absolute; inset: -2px; border-radius: 50%; border: 2px solid var(--brand); opacity: 0; }
+.sdk__spine.is-dual .sdk__spineNode::after { animation: sdkring 1.9s var(--e) infinite; }
+@keyframes sdkring { 0% { transform: scale(0.9); opacity: 0.55; } 100% { transform: scale(2.5); opacity: 0; } }
+
+/* model dropdowns (selectable AI model per SDK) */
+.sdkmodel { position: relative; flex: none; }
+.sdkmodel__btn { appearance: none; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--font-mono); font-size: 10.5px; color: var(--muted); background: transparent;
+  border: 1px solid var(--line); border-radius: var(--radius-xs); padding: 4px 7px 4px 8px; white-space: nowrap;
+  transition: border-color 0.25s var(--e), color 0.25s var(--e); }
+.sdkmodel__btn:hover, .sdkmodel.open .sdkmodel__btn { border-color: var(--info-d); color: var(--fg); }
+.sdkmodel__btn svg { width: 12px; height: 12px; flex: none; }
+.sdkmodel__cpu { color: var(--info-d); }
+.sdkmodel__chev { color: var(--muted); transition: transform 0.25s var(--e); }
+.sdkmodel.open .sdkmodel__chev { transform: rotate(180deg); }
+.sdkmodel__menu { position: absolute; top: calc(100% + 5px); right: 0; z-index: 9; min-width: 150px;
+  background: var(--ink-2); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 4px;
+  box-shadow: var(--shadow-lg); display: none; flex-direction: column; gap: 2px; }
+.sdkmodel.open .sdkmodel__menu { display: flex; }
+.sdkmodel__menu button { appearance: none; cursor: pointer; text-align: left; background: transparent; border: 0; border-radius: 3px;
+  font-family: var(--font-mono); font-size: 11px; color: var(--muted); padding: 7px 9px; display: flex; align-items: center; gap: 8px;
+  transition: background 0.2s var(--e), color 0.2s var(--e); }
+.sdkmodel__menu button::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: transparent; flex: none; }
+.sdkmodel__menu button:hover { background: rgba(244,241,233,.05); color: var(--fg); }
+.sdkmodel__menu button.is-sel { color: var(--fg); }
+.sdkmodel__menu button.is-sel::before { background: var(--info-d); }
+
+/* ═══ DUAL exchange · a payload handed between the two engines through the shared core ═══ */
+.sdk__swap { position: absolute; inset: 0; z-index: 4; pointer-events: none; }
+
+/* the synchronized link — a faint fibre between engines, alive only in DUAL */
+.sdk__chan { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; opacity: 0; transition: opacity 0.55s var(--e); }
+.sdk--dual .sdk__chan { opacity: 1; }
+.sdk__chan__wire { fill: none; stroke: var(--line); stroke-width: 2; stroke-linecap: round;
+  stroke-dasharray: 2.5 8; vector-effect: non-scaling-stroke; }
+.sdk--dual .sdk__chan__wire { stroke: url(#sdkChanG); opacity: 0.55; animation: sdkwire 5.5s linear infinite; }
+@keyframes sdkwire { to { stroke-dashoffset: -21; } }
+/* a soft bright sweep that runs the fibre the instant an exchange fires */
+.sdk__chan__pulse { fill: none; stroke: url(#sdkChanG); stroke-width: 2.4; stroke-linecap: round;
+  vector-effect: non-scaling-stroke; stroke-dasharray: 16 220; stroke-dashoffset: 26; opacity: 0;
+  filter: drop-shadow(0 0 4px rgba(217,106,69,.5)); }
+.sdk__swap.go-fwd .sdk__chan__pulse { animation: sdkpulse-fwd 0.82s var(--e); }
+.sdk__swap.go-back .sdk__chan__pulse { animation: sdkpulse-back 0.82s var(--e); }
+@keyframes sdkpulse-fwd { 0% { opacity: 0; stroke-dashoffset: 26; } 16% { opacity: .9; } 85% { opacity: .7; } 100% { opacity: 0; stroke-dashoffset: -150; } }
+@keyframes sdkpulse-back { 0% { opacity: 0; stroke-dashoffset: -150; } 16% { opacity: .9; } 85% { opacity: .7; } 100% { opacity: 0; stroke-dashoffset: 26; } }
+
+/* DUAL message transfer — one engine writes an instruction to the other; the text
+   lifts off as a luminous orb, crosses the channel, and resolves into text on the peer. */
+/* 1 · the sender composes, typed live with a blinking caret */
+.sdkmsg { overflow: hidden; }
+.sdkmsg .sdkmsg__t { text-wrap: pretty; }
+.sdkmsg.is-out { color: var(--brand-bright); }
+.sdkmsg.is-out .sdkstep__g { color: var(--brand-bright); }
+.sdkmsg__caret { display: inline-block; width: 6px; height: 13px; margin-left: 1px; vertical-align: -2px;
+  background: var(--brand-bright); border-radius: 1px; animation: sdkcaret 0.85s steps(1, end) infinite; }
+@keyframes sdkcaret { 0%, 50% { opacity: 1; } 50.01%, 100% { opacity: 0; } }
+.sdkmsg--ready .sdkmsg__caret { animation: none; opacity: 0; }
+/* 2 · the composed line collapses as it lifts off */
+.sdkmsg--lift { transition: height 0.34s var(--e), margin 0.34s var(--e), opacity 0.24s var(--e), filter 0.24s var(--e), transform 0.24s var(--e);
+  filter: blur(2px); transform: translateY(-2px) scale(0.96); }
+/* 3 · the orb in flight (transform + position driven by Web Animations) */
+.sdkmsg__orb { position: absolute; top: 0; left: 0; width: 15px; height: 15px; border-radius: 50%; z-index: 6; pointer-events: none; }
+.sdkmsg__orb::after { content: ""; position: absolute; inset: -5px; border-radius: 50%; animation: sdkorbhalo 0.7s ease-in-out infinite alternate; }
+.sdkmsg__orb.to-c { background: radial-gradient(circle at 35% 32%, #ffe2d4, #d96a45 62%);
+  box-shadow: 0 0 16px 4px rgba(217,106,69,.6), 0 0 38px 9px rgba(217,106,69,.22); }
+.sdkmsg__orb.to-c::after { box-shadow: 0 0 18px 6px rgba(217,106,69,.4); }
+.sdkmsg__orb.to-o { background: radial-gradient(circle at 35% 32%, #ddeef7, #79b1cf 62%);
+  box-shadow: 0 0 16px 4px rgba(121,177,207,.6), 0 0 38px 9px rgba(121,177,207,.22); }
+.sdkmsg__orb.to-o::after { box-shadow: 0 0 18px 6px rgba(121,177,207,.4); }
+@keyframes sdkorbhalo { from { opacity: .35; transform: scale(.85); } to { opacity: .85; transform: scale(1.15); } }
+/* 4 · the orb resolves into text below the peer's last line — a left-to-right wipe */
+.sdkmsg--in { opacity: 0; transform: none; clip-path: inset(0 100% 0 0); transition: none; }
+.sdkmsg--in.land { opacity: 1; clip-path: inset(0 0 0 0);
+  transition: clip-path 0.46s var(--e) 0.02s, opacity 0.3s var(--e); }
+
+/* engines react: the sender pushes, the receiver lights up as the orb lands */
+.sdklane.is-emit .ldot { animation: sdkemit 0.6s var(--e); }
+.sdklane.is-recv-pulse .ldot { animation: sdkrecv 0.7s var(--e); }
+@keyframes sdkemit { 0% { transform: scale(1); } 30% { transform: scale(1.5); } 100% { transform: scale(1); } }
+@keyframes sdkrecv {
+  0% { transform: scale(.7); box-shadow: 0 0 0 0 rgba(121,177,207,.5); }
+  40% { transform: scale(1.45); }
+  100% { transform: scale(1); box-shadow: 0 0 0 7px rgba(121,177,207,0); }
+}
+.sdklane.is-recv-pulse::after { content: ""; position: absolute; inset: 0; pointer-events: none; border-radius: 2px;
+  background: radial-gradient(120% 80% at 50% 0, rgba(121,177,207,.12), transparent 70%); animation: sdkrecvwash 0.7s var(--e); }
+@keyframes sdkrecvwash { 0% { opacity: 0; } 30% { opacity: 1; } 100% { opacity: 0; } }
+
+/* merged verdict bar */
+.sdk__verdict { display: flex; align-items: center; gap: 11px; padding: 12px 16px; border-top: 1px solid var(--line); background: var(--ink);
+  font-family: var(--font-mono); font-size: 12px; color: var(--muted);
+  opacity: 0; transform: translateY(6px); transition: opacity 0.42s var(--e), transform 0.42s var(--e); }
+.sdk__verdict.show { opacity: 1; transform: none; }
+.sdk__verdict__tag { flex: none; display: inline-flex; align-items: center; font-family: var(--font-mono); font-weight: 700; font-size: 10px;
+  letter-spacing: 0.09em; text-transform: uppercase; padding: 4px 8px; border-radius: var(--radius-xs); border: 1.5px solid currentColor; line-height: 1; }
+.sdk__verdict.is-ok .sdk__verdict__tag { color: var(--pass-d); background: rgba(92,201,138,.1); }
+.sdk__verdict.is-dual .sdk__verdict__tag { color: var(--info-d); background: rgba(121,177,207,.1); }
+.sdk__verdict__txt { color: var(--fg); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (prefers-reduced-motion: reduce) {
+  .sdk__spineNode::after, .sdk__spineNode.ping, .sdk__hot.flash,
+  .sdk__chan__pulse, .sdk__chan__wire, .sdk__spineNode.merge, .sdk__spineNode.merge svg,
+  .sdkmsg__caret, .sdkmsg__orb::after,
+  .sdklane.is-emit .ldot, .sdklane.is-recv-pulse .ldot, .sdklane.is-recv-pulse::after { animation: none !important; }
+  .sdkstep, .sdk__verdict, .sdklane { transition: none !important; }
+}
+
 /* ═══ Responsive ═══════════════════════════════════════════════════════ */
 @media (max-width: 980px) {
   .hero__grid { grid-template-columns: 1fr; gap: 36px; }
@@ -713,6 +894,10 @@ h2.section-title {
   .rail__stage { font-size: 10px; padding: 4px 7px; }
   .selfix__lane { grid-template-columns: 1fr; gap: 8px; }
   .selfix__arrow { display: none; }
+  .sdk__lanes { grid-template-columns: 1fr; }
+  .sdk__spine { display: none; }
+  .sdklane--codex { border-top: 1px solid var(--line); }
+  .sdk__swap { display: none; }
   .nav__inner { gap: 10px; padding: 0 16px; }
   .nav .lang { display: none; }
   .nav .btn[href="#engine"] { padding: 6px 12px; font-size: 12px; }

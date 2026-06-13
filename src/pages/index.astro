@@ -113,11 +113,29 @@ import '../styles/landing.css';
     </div>
   </section>
 
-  <!-- ═══ DEMO 3 — ask it anything (paper) ═════════════════════════ -->
+  <!-- ═══ DEMO 3 — dual-SDK runtime (opencode / codex / DUAL) ═══════ -->
+  <section class="band band--dark ruled section" id="demo-sdk">
+    <div class="wrap demo">
+      <div class="demo__text">
+        <span class="demo__num">03 · <span data-i18n="sdk.tag">engine choice</span></span>
+        <span class="kicker" style="display:block;margin-top:10px" data-i18n="sdk.kicker">opencode · codex · dual</span>
+        <h2 class="section-title" data-i18n="sdk.h2">Pick your engine. Or run both.</h2>
+        <p class="lede demo__sub" data-i18n="sdk.sub">Choose opencode or codex as your SDK and configure the model behind it. Flip on DUAL to run both inside one synchronized process, and swap engines hot, mid-run, with state carried over.</p>
+        <p class="demo__caption"><b data-i18n="sdk.capk">Hot-swappable:</b> <span data-i18n="sdk.cap">change SDK or model mid-run; state is preserved. DUAL runs both, synchronized, in one process.</span></p>
+        <div class="demo__replay"><button class="btn btn--ghost-dark btn--sm" data-replay="demoSdk"><i data-lucide="rotate-cw" class="ic"></i><span data-i18n="replay">Replay</span></button></div>
+      </div>
+      <div class="demo__stage">
+        <div class="fig-label">FIG. 03 · engine runtime<span class="fig-label__rule"></span></div>
+        <div class="stage-surface" id="stage-sdk"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ DEMO 4 — ask it anything (paper) ═════════════════════════ -->
   <section class="band band--paper-2 section" id="demo-3">
     <div class="wrap demo">
       <div class="demo__text">
-        <span class="demo__num">03 · <span data-i18n="d3.tag">memory + chat</span></span>
+        <span class="demo__num">04 · <span data-i18n="d3.tag">memory + chat</span></span>
         <span class="kicker" style="display:block;margin-top:10px" data-i18n="d3.kicker">Ask it anything</span>
         <h2 class="section-title" data-i18n="d3.h2">Your test suite, now something you can talk to.</h2>
         <p class="lede demo__sub" data-i18n="d3.sub">panchito remembers every run — fragile flows, flaky selectors, what fixed them last time — and answers from memory. Trigger runs, explain failures, onboard a repo: in plain language.</p>
@@ -125,34 +143,34 @@ import '../styles/landing.css';
         <div class="demo__replay"><button class="btn btn--ghost-ink btn--sm" data-replay="demo3"><i data-lucide="rotate-cw" class="ic"></i><span data-i18n="replay">Replay</span></button></div>
       </div>
       <div class="demo__stage">
-        <div class="fig-label">FIG. 03 · any channel<span class="fig-label__rule"></span></div>
+        <div class="fig-label">FIG. 04 · any channel<span class="fig-label__rule"></span></div>
         <div class="stage-surface" id="stage-3"></div>
       </div>
     </div>
   </section>
 
-  <!-- ═══ DEMO 4 — it tests itself ═════════════════════════════════ -->
+  <!-- ═══ DEMO 5 — it tests itself ═════════════════════════════════ -->
   <section class="band band--dark ruled section" id="demo-4">
     <div class="wrap demo demo--flip">
       <div class="demo__text">
-        <span class="demo__num">04 · <span data-i18n="d4.tag">recursive</span></span>
+        <span class="demo__num">05 · <span data-i18n="d4.tag">recursive</span></span>
         <span class="kicker" style="display:block;margin-top:10px" data-i18n="d4.kicker">It tests itself</span>
         <h2 class="section-title" data-i18n="d4.h2">The first thing panchito tests is panchito.</h2>
         <p class="lede demo__sub" data-i18n="d4.sub">Its agents report their own failures to a maintainer agent that fixes them and commits the change — with live log and status monitoring. The code that uses itself to get better, every day. (Like building git in git.)</p>
         <div class="demo__replay"><button class="btn btn--ghost-dark btn--sm" data-replay="demo4"><i data-lucide="rotate-cw" class="ic"></i><span data-i18n="replay">Replay</span></button></div>
       </div>
       <div class="demo__stage">
-        <div class="fig-label">FIG. 04 · self-fix loop<span class="fig-label__rule"></span></div>
+        <div class="fig-label">FIG. 05 · self-fix loop<span class="fig-label__rule"></span></div>
         <div class="stage-surface" id="stage-4"></div>
       </div>
     </div>
   </section>
 
-  <!-- ═══ DEMO 5 — the learning layer ══════════════════════════════ -->
+  <!-- ═══ DEMO 6 — the learning layer ══════════════════════════════ -->
   <section class="band band--paper-2 section" id="demo-5">
     <div class="wrap demo">
       <div class="demo__text">
-        <span class="demo__num">05 · <span data-i18n="d5.tag">learning</span></span>
+        <span class="demo__num">06 · <span data-i18n="d5.tag">learning</span></span>
         <span class="kicker" style="display:block;margin-top:10px" data-i18n="d5.kicker">The learning layer</span>
         <h2 class="section-title" data-i18n="d5.h2">Every failure becomes a rule it won't break twice.</h2>
         <p class="lede demo__sub" data-i18n="d5.sub">panchito doesn't just pass or fail a run, it learns from it. A labeler classifies the error, an oracle scores test quality with mutation testing, and a reflector traces the root cause to real artifacts. A distiller turns that into a reusable rule, injected into every future run. Attribution promotes the rules that lead to good outcomes; a curriculum keeps only the probes that have caught real bugs.</p>
@@ -160,7 +178,7 @@ import '../styles/landing.css';
         <div class="demo__replay"><button class="btn btn--ghost-ink btn--sm" data-replay="demo5"><i data-lucide="rotate-cw" class="ic"></i><span data-i18n="replay">Replay</span></button></div>
       </div>
       <div class="demo__stage">
-        <div class="fig-label">FIG. 05 · the learning loop<span class="fig-label__rule"></span></div>
+        <div class="fig-label">FIG. 06 · the learning loop<span class="fig-label__rule"></span></div>
         <div class="stage-surface" id="stage-5"></div>
       </div>
     </div>
