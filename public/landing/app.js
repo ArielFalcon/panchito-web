@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════════════════
-   Panchito landing — boot. Wires i18n, nav, the hero + four demo players (all
-   driven by the AnimationDirector), the scenario engine, comparison, waitlist.
+   Panchito landing — boot. Wires i18n, nav, the hero + demo players (all
+   driven by the AnimationDirector), the scenario engine, and the comparison.
    ═══════════════════════════════════════════════════════════════════════ */
 (function () {
   const $ = (s, r = document) => r.querySelector(s);
@@ -22,7 +22,7 @@
     onScroll(); window.addEventListener('scroll', onScroll, { passive: true });
 
     // ── reveal copy on scroll ──
-    const revealEls = $$('.demo__text, .engine__head, .cta, #compare .kicker, #compare .section-title, #compare .lede');
+    const revealEls = $$('.demo__text, .engine__head, #compare .kicker, #compare .section-title, #compare .lede');
     revealEls.forEach((e) => e.classList.add('reveal'));
     let rafR = 0;
     function revealCheck() {
@@ -66,16 +66,15 @@
     const rail = window.PUI.Rail();
     $('#eng-rail').appendChild(rail.el);
     const makeEngine = S.makeEngine(rail);
-    let depth = 10;
+    let depth = 3;
     const depthVal = $('#depth-val');
-    $('#depth-dec').addEventListener('click', () => { depth = Math.max(1, depth - 1); depthVal.textContent = depth; $('#eng-full').checked = false; });
-    $('#depth-inc').addEventListener('click', () => { depth = Math.min(50, depth + 1); depthVal.textContent = depth; $('#eng-full').checked = false; });
+    $('#depth-dec').addEventListener('click', () => { depth = Math.max(1, depth - 1); depthVal.textContent = depth; });
+    $('#depth-inc').addEventListener('click', () => { depth = Math.min(5, depth + 1); depthVal.textContent = depth; });
     let enginePlayer = null;
     $('#eng-run').addEventListener('click', () => {
       const empty = $('#eng-empty'); if (empty) empty.style.display = 'none';
       const repo = ($('#eng-repo').value || 'your-org/shop').trim();
-      const full = $('#eng-full').checked;
-      const scen = makeEngine({ repo, depth, full });
+      const scen = makeEngine({ repo, depth });
       if (enginePlayer) enginePlayer.pause();
       enginePlayer = window.createPlayer($('#eng-output'), scen, {
         autoRegister: false,
@@ -88,15 +87,6 @@
 
     // ── comparison table ──
     renderCompare();
-
-    // ── waitlist ──
-    $('#waitlist').addEventListener('submit', (e) => {
-      e.preventDefault();
-      const email = $('#wl-email').value.trim();
-      if (!email || email.indexOf('@') < 0) { $('#wl-email').focus(); return; }
-      try { localStorage.setItem('panchito.waitlist', email); } catch (err) {}
-      $('#wl-ok').classList.add('show'); $('#wl-email').value = '';
-    });
 
     // ── language change → re-render dynamic copy in the new language ──
     window.addEventListener('langchange', () => {

@@ -205,15 +205,10 @@ import '../styles/landing.css';
             <label class="ctl__label" data-i18n="eng.depth">Analyze the last N commits</label>
             <div class="stepper" role="group" aria-label="Diff depth">
               <button id="depth-dec" aria-label="decrease">−</button>
-              <span class="stepper__val" id="depth-val">10</span>
+              <span class="stepper__val" id="depth-val">3</span>
               <button id="depth-inc" aria-label="increase">+</button>
             </div>
           </div>
-          <div class="ctl__or" data-i18n="eng.or">— or —</div>
-          <label class="ctl" style="cursor:pointer;flex-direction:row;align-items:center;gap:10px">
-            <input type="checkbox" id="eng-full" style="accent-color:var(--brand);width:16px;height:16px">
-            <span class="ctl__label" style="text-transform:none;letter-spacing:0" data-i18n="eng.full">Full analysis — audit the whole repo</span>
-          </label>
           <button class="btn btn--primary" id="eng-run" style="height:46px"><i data-lucide="play" class="ic"></i><span data-i18n="eng.run">Run pipeline</span></button>
           <div class="cap-note">
             <i data-lucide="info" style="width:15px;height:15px"></i>
@@ -259,24 +254,6 @@ import '../styles/landing.css';
     </div>
   </section>
 
-  <!-- ═══ FINAL CTA ════════════════════════════════════════════════ -->
-  <section class="band band--dark ruled section" id="cta">
-    <div class="wrap cta">
-      <span class="kicker" data-i18n="cta.kicker">Get started</span>
-      <h2 class="section-title" data-i18n="cta.h2">Run it on your real repo.</h2>
-      <p class="lede" style="margin:14px auto 0" data-i18n="cta.sub">panchito is open source. Self-host the engine, or join the waitlist for the hosted beta.</p>
-      <form class="cta__form" id="waitlist" novalidate>
-        <label class="cta__email">
-          <i data-lucide="mail" style="width:16px;height:16px;color:var(--muted)"></i>
-          <input type="email" id="wl-email" placeholder="you@team.dev" data-i18n-ph="cta.ph" aria-label="Email">
-        </label>
-        <button class="btn btn--primary" type="submit" style="height:46px" data-i18n="cta.join">Join the waitlist</button>
-        <a class="btn btn--ghost-dark" href="https://github.com/ArielFalcon/ai-pipeline" target="_blank" rel="noopener" style="height:46px"><i data-lucide="github" class="ic"></i><span data-i18n="cta.gh">Star on GitHub</span></a>
-      </form>
-      <p class="cta__ok" id="wl-ok" data-i18n="cta.ok">✓ you're on the list — we'll be in touch.</p>
-      <p class="cta__note" data-i18n="cta.note"><!-- TODO: wire form endpoint --> no backend in this demo — submission is stored locally.</p>
-    </div>
-  </section>
 </main>
 
 <!-- ═══ FOOTER ═══════════════════════════════════════════════════════ -->

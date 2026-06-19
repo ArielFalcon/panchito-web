@@ -121,8 +121,7 @@
 
       'eng.kicker': 'Live engine', 'eng.h2': "Don't take our word for it. Run it.",
       'eng.sub': 'Point it at a repo, pick how deep to look, and watch the whole pipeline work, live.',
-      'eng.repo': 'Repository', 'eng.depth': 'Analyze the last N commits', 'eng.or': '· or ·',
-      'eng.full': 'Full analysis: audit the whole repo', 'eng.run': 'Run pipeline',
+      'eng.repo': 'Repository', 'eng.depth': 'Analyze the last N commits', 'eng.run': 'Run pipeline',
       'eng.cap': 'Demo mode is capped to a few commits and a handful of tests, so you get the feel in seconds, not an 80-test marathon.',
       'eng.idle': 'configure a run and press play', 'eng.running': 'running…',
       'eng.report': 'View full result in console →',
@@ -135,11 +134,6 @@
       'cmp.human': 'human', 'cmp.single': 'single-model', 'cmp.partial': 'partial',
       'cmp.serviceowned': 'service-owned', 'cmp.theircloud': 'their cloud', 'cmp.replay': 'replay',
 
-      'cta.kicker': 'Get started', 'cta.h2': 'Run it on your real repo.',
-      'cta.sub': 'panchito is open source. Self-host the engine, or join the waitlist for the hosted beta.',
-      'cta.ph': 'you@team.dev', 'cta.join': 'Join the waitlist', 'cta.gh': 'Star on GitHub',
-      'cta.ok': "✓ you're on the list. We'll be in touch.",
-      'cta.note': 'no backend in this demo; submission is stored locally.',
       'footer.wink': 'made with panchito',
     },
     es: {
@@ -260,8 +254,7 @@
 
       'eng.kicker': 'Motor en vivo', 'eng.h2': 'No nos creas. Pruébalo.',
       'eng.sub': 'Apúntalo a un repo, elige hasta qué profundidad mirar, y mira todo el pipeline trabajar, en vivo.',
-      'eng.repo': 'Repositorio', 'eng.depth': 'Analizar los últimos N commits', 'eng.or': '· o ·',
-      'eng.full': 'Análisis completo: auditar todo el repo', 'eng.run': 'Ejecutar pipeline',
+      'eng.repo': 'Repositorio', 'eng.depth': 'Analizar los últimos N commits', 'eng.run': 'Ejecutar pipeline',
       'eng.cap': 'El modo demo está limitado a unos pocos commits y un puñado de tests, para que sientas cómo es en segundos, no en una maratón de 80 tests.',
       'eng.idle': 'configura una ejecución y presiona play', 'eng.running': 'ejecutando…',
       'eng.report': 'Ver el resultado completo en la consola →',
@@ -274,11 +267,6 @@
       'cmp.human': 'humano', 'cmp.single': 'un solo modelo', 'cmp.partial': 'parcial',
       'cmp.serviceowned': 'del servicio', 'cmp.theircloud': 'su nube', 'cmp.replay': 'replay',
 
-      'cta.kicker': 'Empezar', 'cta.h2': 'Ejecútalo en tu repo real.',
-      'cta.sub': 'panchito es código abierto. Auto-aloja el motor, o únete a la lista de espera de la beta alojada.',
-      'cta.ph': 'tu@equipo.dev', 'cta.join': 'Unirme a la lista de espera', 'cta.gh': 'Star en GitHub',
-      'cta.ok': '✓ estás en la lista. Te contactamos.',
-      'cta.note': 'sin backend en esta demo; el envío se guarda localmente.',
       'footer.wink': 'hecho con panchito',
     },
   };
